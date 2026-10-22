@@ -721,6 +721,8 @@ html:lang(zh-HK){--font-pixel:"Inter","Huninn","Noto Sans HK",system-ui,sans-ser
 .hud-day,.hud-cash,.price,.daytag,.heatnum,.hits,.t-num,.timer,.roll-out{font-family:"Inter",var(--font-body),system-ui,sans-serif!important;font-weight:900;letter-spacing:0}
 .price{color:var(--gold)!important}
 .hud svg.px,.bombrow svg.px{filter:drop-shadow(0 0 1px #fff) drop-shadow(0 0 6px rgba(255,255,255,.35))}
+.ball:not(.empty),.cu-ball{color:#14204F!important;--ink:#14204F}
+.ball:not(.empty),.cu-ball{clip-path:none!important;border-radius:50%!important;background:radial-gradient(circle at 50% 50%,#fff 0 55%,var(--bc) 57%)!important;box-shadow:inset 0 -3px 0 rgba(0,0,0,.18),0 2px 6px rgba(0,0,0,.35);font-family:"Inter",var(--font-body)!important;font-weight:900}
 /* lucky items */
 .lk-homebtn{align-self:center;background:none;border:1px solid var(--edge,rgba(255,210,74,.5));color:var(--gold);font:inherit;font-weight:900;padding:10px 18px;border-radius:999px;cursor:pointer}
 .lk-homebtn:hover{background:rgba(255,210,74,.12)}
@@ -756,6 +758,20 @@ body.lk-on{overflow:hidden}
 .lk-social{display:flex;flex-wrap:wrap;gap:6px}
 .lk-soc{text-decoration:none;color:var(--ink)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* next-step guide */
+.gd-pill{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:900;display:flex;align-items:center;gap:8px;max-width:calc(100vw - 32px);padding:11px 18px;border-radius:999px;border:2px solid #14204F;background:var(--gold,#FFD24A);color:#14204F;font:inherit;font-weight:900;font-size:15px;line-height:1.2;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.45),0 0 0 4px rgba(255,210,74,.25);animation:gdIn .25s ease-out}
+.gd-pill.up{top:calc(12px + env(safe-area-inset-top));bottom:auto}
+.gd-pill[hidden]{display:none}
+.gd-lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gd-arrow{display:inline-block;animation:gdBob 1s ease-in-out infinite}
+.gd-pill.up .gd-arrow{animation-name:gdBobUp}
+@keyframes gdIn{from{opacity:0;transform:translate(-50%,12px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes gdBob{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
+@keyframes gdBobUp{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.gd-pulse{animation:gdPulse 1.2s ease-out 2!important;position:relative;z-index:2}
+@keyframes gdPulse{0%{box-shadow:0 0 0 0 rgba(255,210,74,.9)}100%{box-shadow:0 0 0 18px rgba(255,210,74,0)}}
+@media (prefers-reduced-motion: reduce){.gd-pill,.gd-arrow,.gd-pulse{animation:none!important}}
+body.lk-on .gd-pill{display:none}
 </style>
 
 <canvas id="fx" aria-hidden="true"></canvas>
@@ -6479,7 +6495,7 @@ zh: {
   tabNum: '幸運號碼卡', tabOma: '超幸運御守', nameLbl: '你個名（會印喺卡上，可以留空）', namePh: '例如：阿明', colorLbl: '御守顏色',
   colors: { red: '紅', purple: '紫', gold: '金', navy: '深藍' }, share: '分享', save: '儲存圖片', saved: '已儲存。',
   hold: '如果儲存唔到：長按（或者右㩒）張圖就可以儲存。', shareText: '我喺《中獎翌日》攞咗今日嘅幸運號碼 🍀 你都嚟試吓！', shareVia: '分享去：',
-  lockTitle: '☕ 請我飲杯咖啡？', lockText: p => `呢個 game 由一個人整，冇廣告，亦唔收集你任何資料。如果佢令你笑咗一下，可以請我飲杯咖啡（一杯 ${p}，想請多幾杯都得，付款頁可以加數量）。回禮：超幸運御守（4 色、印你個名）同金色幸運號碼卡，即刻解鎖。唔支持都完全冇問題 🙏`,
+  lockTitle: '☕ 請我飲杯咖啡？', lockText: p => `呢個 game 由一個人整，冇廣告，亦唔收集你嘅個人資料。如果佢令你笑咗一下，可以請我飲杯咖啡（一杯 ${p}，想請多幾杯都得，付款頁可以加數量）。回禮：超幸運御守（4 色、印你個名）同金色幸運號碼卡，即刻解鎖。唔支持都完全冇問題 🙏`,
   support: p => `請我飲杯咖啡 · ${p}`, soon: '支持功能即將推出', demo: '示範', thanks: '多謝你嘅支持！御守同金卡已經解鎖。', gold: '金卡', close: '關閉',
   numTitle: '今日幸運號碼', goldTitle: '金色幸運號碼卡', goldDate: '支持者限定', goldTag: '金卡', kGood: '宜', kBad: '忌', kColor: '色',
   goods: ['飲杯凍檸茶，靜靜雞', '請自己食個好嘢', '早啲瞓', '同屋企人食餐飯', '執吓個衣櫃', '行吓山吹吓風'],
@@ -6496,7 +6512,7 @@ en: {
   tabNum: 'Lucky numbers', tabOma: 'Super Lucky Charm', nameLbl: 'Your name (printed on the card, optional)', namePh: 'e.g. Sam', colorLbl: 'Charm colour',
   colors: { red: 'Red', purple: 'Purple', gold: 'Gold', navy: 'Navy' }, share: 'Share', save: 'Save picture', saved: 'Saved.',
   hold: 'If saving doesn\'t work, long-press (or right-click) the picture to save it.', shareText: 'I got my lucky numbers for today in The Day After Lottery 🍀 Try it!', shareVia: 'Share to:',
-  lockTitle: '☕ Buy me a coffee?', lockText: p => `This game is made by one person, with no ads and no data collection. If it made you smile, you can buy me a coffee (${p} a cup — you can add more cups on the payment page). As thanks, you instantly unlock the Super Lucky Charm (4 colours, with your name) and the gold lucky number card. No pressure at all 🙏`,
+  lockTitle: '☕ Buy me a coffee?', lockText: p => `This game is made by one person, with no ads and no personal data collected. If it made you smile, you can buy me a coffee (${p} a cup — you can add more cups on the payment page). As thanks, you instantly unlock the Super Lucky Charm (4 colours, with your name) and the gold lucky number card. No pressure at all 🙏`,
   support: p => `Buy me a coffee · ${p}`, soon: 'Support is coming soon', demo: 'Sample', thanks: 'Thank you for your support! The charm and gold card are unlocked.', gold: 'Gold card', close: 'Close',
   numTitle: 'Today\'s lucky numbers', goldTitle: 'Gold lucky number card', goldDate: 'Supporters only', goldTag: 'GOLD', kGood: 'Do', kBad: 'Don\'t', kColor: 'Hue',
   goods: ['Have an iced lemon tea, quietly', 'Treat yourself to something nice', 'Go to bed early', 'Have dinner with family', 'Tidy your wardrobe', 'Go for a walk in the hills'],
@@ -6513,7 +6529,7 @@ cn: {
   tabNum: '幸运号码卡', tabOma: '超幸运御守', nameLbl: '你的名字（会印在卡上，可以留空）', namePh: '例如：小明', colorLbl: '御守颜色',
   colors: { red: '红', purple: '紫', gold: '金', navy: '深蓝' }, share: '分享', save: '保存图片', saved: '已保存。',
   hold: '如果保存不了：长按（或右键）图片即可保存。', shareText: '我在《中奖第二天》抽到了今日幸运号码 🍀 你也来试试！', shareVia: '分享到：',
-  lockTitle: '☕ 请我喝杯咖啡？', lockText: p => `这个游戏由一个人制作，没有广告，也不收集你的任何资料。如果它让你笑了一下，可以请我喝杯咖啡（一杯 ${p}，想多请几杯也可以，付款页可调整数量）。回礼：超幸运御守（4 色、印上你的名字）和金色幸运号码卡，立即解锁。不支持也完全没关系 🙏`,
+  lockTitle: '☕ 请我喝杯咖啡？', lockText: p => `这个游戏由一个人制作，没有广告，也不收集你的个人资料。如果它让你笑了一下，可以请我喝杯咖啡（一杯 ${p}，想多请几杯也可以，付款页可调整数量）。回礼：超幸运御守（4 色、印上你的名字）和金色幸运号码卡，立即解锁。不支持也完全没关系 🙏`,
   support: p => `请我喝杯咖啡 · ${p}`, soon: '支持功能即将推出', demo: '示例', thanks: '感谢你的支持！御守和金卡已解锁。', gold: '金卡', close: '关闭',
   numTitle: '今日幸运号码', goldTitle: '金色幸运号码卡', goldDate: '支持者专属', goldTag: '金卡', kGood: '宜', kBad: '忌', kColor: '色',
   goods: ['喝杯冰柠檬茶，低调一点', '请自己吃顿好的', '早点睡', '和家人吃顿饭', '收拾一下衣柜', '去爬爬山吹吹风'],
@@ -6530,7 +6546,7 @@ ja: {
   tabNum: 'ラッキー番号', tabOma: '超開運お守り', nameLbl: 'お名前（カードに印刷・空欄でもOK）', namePh: '例：たろう', colorLbl: 'お守りの色',
   colors: { red: '赤', purple: '紫', gold: '金', navy: '紺' }, share: 'シェア', save: '画像を保存', saved: '保存しました。',
   hold: '保存できない場合は、画像を長押し（または右クリック）して保存してください。', shareText: '『当選の翌日』で今日のラッキーナンバーをもらった 🍀 やってみて！', shareVia: 'シェア先：',
-  lockTitle: '☕ コーヒーを1杯おごってくれる？', lockText: p => `このゲームは一人で作っています。広告なし、データ収集もなし。少しでも笑ってもらえたら、コーヒーを1杯おごってください（1杯 ${p}。支払いページで杯数を増やすこともできます）。お礼に、超開運お守り（4色・名前入り）とゴールドのラッキーナンバーカードがすぐ解放されます。もちろん無理しなくて大丈夫です 🙏`,
+  lockTitle: '☕ コーヒーを1杯おごってくれる？', lockText: p => `このゲームは一人で作っています。広告なし、個人情報の収集もなし。少しでも笑ってもらえたら、コーヒーを1杯おごってください（1杯 ${p}。支払いページで杯数を増やすこともできます）。お礼に、超開運お守り（4色・名前入り）とゴールドのラッキーナンバーカードがすぐ解放されます。もちろん無理しなくて大丈夫です 🙏`,
   support: p => `コーヒーをおごる · ${p}`, soon: '応援機能は近日公開', demo: 'サンプル', thanks: '応援ありがとうございます！お守りとゴールドカードが解放されました。', gold: 'ゴールド', close: '閉じる',
   numTitle: '今日のラッキーナンバー', goldTitle: 'ゴールド・ラッキーカード', goldDate: 'サポーター限定', goldTag: 'GOLD', kGood: '吉', kBad: '凶', kColor: '色',
   goods: ['冷たいレモンティーで静かに祝う', '自分にちょっといいご飯を', '早めに寝る', '家族とごはんを食べる', 'クローゼットを片づける', '山を歩いて風に当たる'],
@@ -6547,7 +6563,7 @@ ko: {
   tabNum: '행운 번호 카드', tabOma: '초행운 부적', nameLbl: '이름 (카드에 인쇄돼요, 비워도 돼요)', namePh: '예: 민수', colorLbl: '부적 색',
   colors: { red: '빨강', purple: '보라', gold: '금색', navy: '남색' }, share: '공유', save: '이미지 저장', saved: '저장했어요.',
   hold: '저장이 안 되면 이미지를 길게 누르거나 오른쪽 클릭해서 저장하세요.', shareText: '「당첨 다음 날」에서 오늘의 행운 번호를 받았어요 🍀 해 보세요!', shareVia: '공유하기:',
-  lockTitle: '☕ 커피 한 잔 사 주실래요?', lockText: p => `이 게임은 한 사람이 만들었어요. 광고도 없고, 어떤 데이터도 수집하지 않아요. 한 번이라도 웃으셨다면 커피 한 잔 사 주세요 (한 잔 ${p}, 결제 페이지에서 잔 수를 늘릴 수 있어요). 감사의 선물로 초행운 부적(4색, 이름 인쇄)과 골드 행운 번호 카드가 바로 열려요. 부담은 전혀 갖지 마세요 🙏`,
+  lockTitle: '☕ 커피 한 잔 사 주실래요?', lockText: p => `이 게임은 한 사람이 만들었어요. 광고도 없고, 개인정보도 수집하지 않아요. 한 번이라도 웃으셨다면 커피 한 잔 사 주세요 (한 잔 ${p}, 결제 페이지에서 잔 수를 늘릴 수 있어요). 감사의 선물로 초행운 부적(4색, 이름 인쇄)과 골드 행운 번호 카드가 바로 열려요. 부담은 전혀 갖지 마세요 🙏`,
   support: p => `커피 사 주기 · ${p}`, soon: '후원 기능 곧 공개', demo: '샘플', thanks: '후원해 주셔서 감사해요! 부적과 골드 카드가 열렸어요.', gold: '골드 카드', close: '닫기',
   numTitle: '오늘의 행운 번호', goldTitle: '골드 행운 번호 카드', goldDate: '후원자 전용', goldTag: 'GOLD', kGood: '길', kBad: '흉', kColor: '색',
   goods: ['아이스 레몬티 한 잔, 조용히', '나에게 맛있는 한 끼 선물', '일찍 자기', '가족과 저녁 먹기', '옷장 정리하기', '산책하며 바람 쐬기'],
@@ -6564,7 +6580,7 @@ es: {
   tabNum: 'Números de la suerte', tabOma: 'Amuleto Superafortunado', nameLbl: 'Tu nombre (sale en la tarjeta, opcional)', namePh: 'p. ej. Ana', colorLbl: 'Color del amuleto',
   colors: { red: 'Rojo', purple: 'Morado', gold: 'Dorado', navy: 'Azul marino' }, share: 'Compartir', save: 'Guardar imagen', saved: 'Guardado.',
   hold: 'Si no se guarda, mantén pulsada la imagen (o clic derecho) para guardarla.', shareText: 'Saqué mis números de la suerte de hoy en El día después de la lotería 🍀 ¡Pruébalo!', shareVia: 'Compartir en:',
-  lockTitle: '☕ ¿Me invitas a un café?', lockText: p => `Este juego lo hace una sola persona, sin anuncios y sin recoger tus datos. Si te sacó una sonrisa, puedes invitarme a un café (${p} la taza; puedes sumar más tazas en la página de pago). Como agradecimiento, desbloqueas al instante el Amuleto Superafortunado (4 colores, con tu nombre) y la tarjeta dorada. Sin ninguna presión 🙏`,
+  lockTitle: '☕ ¿Me invitas a un café?', lockText: p => `Este juego lo hace una sola persona, sin anuncios y sin recoger tus datos personales. Si te sacó una sonrisa, puedes invitarme a un café (${p} la taza; puedes sumar más tazas en la página de pago). Como agradecimiento, desbloqueas al instante el Amuleto Superafortunado (4 colores, con tu nombre) y la tarjeta dorada. Sin ninguna presión 🙏`,
   support: p => `Invitarme a un café · ${p}`, soon: 'El apoyo llegará pronto', demo: 'Muestra', thanks: '¡Gracias por tu apoyo! El amuleto y la tarjeta dorada están desbloqueados.', gold: 'Tarjeta dorada', close: 'Cerrar',
   numTitle: 'Números de la suerte de hoy', goldTitle: 'Tarjeta dorada de la suerte', goldDate: 'Solo para quienes apoyan', goldTag: 'ORO', kGood: 'Sí', kBad: 'No', kColor: 'Color',
   goods: ['Tómate un té helado, sin ruido', 'Date un buen gusto', 'Acuéstate temprano', 'Cena con tu familia', 'Ordena tu armario', 'Sal a caminar y toma aire'],
@@ -6581,7 +6597,7 @@ pt: {
   tabNum: 'Números da sorte', tabOma: 'Amuleto Supersortudo', nameLbl: 'Seu nome (sai no cartão, opcional)', namePh: 'ex.: Ana', colorLbl: 'Cor do amuleto',
   colors: { red: 'Vermelho', purple: 'Roxo', gold: 'Dourado', navy: 'Azul-marinho' }, share: 'Compartilhar', save: 'Salvar imagem', saved: 'Salvo.',
   hold: 'Se não salvar, toque e segure a imagem (ou clique com o botão direito) para salvar.', shareText: 'Peguei meus números da sorte de hoje em O dia depois da loteria 🍀 Experimente!', shareVia: 'Compartilhar em:',
-  lockTitle: '☕ Me paga um café?', lockText: p => `Este jogo é feito por uma pessoa só, sem anúncios e sem coletar seus dados. Se ele te fez sorrir, você pode me pagar um café (${p} a xícara; dá para aumentar a quantidade na página de pagamento). Como agradecimento, você desbloqueia na hora o Amuleto Supersortudo (4 cores, com seu nome) e o cartão dourado. Sem pressão nenhuma 🙏`,
+  lockTitle: '☕ Me paga um café?', lockText: p => `Este jogo é feito por uma pessoa só, sem anúncios e sem coletar seus dados pessoais. Se ele te fez sorrir, você pode me pagar um café (${p} a xícara; dá para aumentar a quantidade na página de pagamento). Como agradecimento, você desbloqueia na hora o Amuleto Supersortudo (4 cores, com seu nome) e o cartão dourado. Sem pressão nenhuma 🙏`,
   support: p => `Me pagar um café · ${p}`, soon: 'Apoio chegando em breve', demo: 'Amostra', thanks: 'Obrigado pelo apoio! O amuleto e o cartão dourado foram desbloqueados.', gold: 'Cartão dourado', close: 'Fechar',
   numTitle: 'Números da sorte de hoje', goldTitle: 'Cartão dourado da sorte', goldDate: 'Só para apoiadores', goldTag: 'OURO', kGood: 'Sim', kBad: 'Não', kColor: 'Cor',
   goods: ['Tome um chá gelado, quietinho', 'Se dê um mimo', 'Durma cedo', 'Jante com a família', 'Arrume o guarda-roupa', 'Caminhe e tome um ar'],
@@ -6598,7 +6614,7 @@ fr: {
   tabNum: 'Numéros porte-bonheur', tabOma: 'Super Porte-bonheur', nameLbl: 'Votre prénom (imprimé sur la carte, facultatif)', namePh: 'ex. : Léa', colorLbl: 'Couleur du porte-bonheur',
   colors: { red: 'Rouge', purple: 'Violet', gold: 'Or', navy: 'Marine' }, share: 'Partager', save: 'Enregistrer l’image', saved: 'Enregistré.',
   hold: 'Si l’enregistrement échoue, appuyez longuement (ou clic droit) sur l’image.', shareText: 'J’ai eu mes numéros porte-bonheur du jour dans Le lendemain du loto 🍀 Essayez !', shareVia: 'Partager sur :',
-  lockTitle: '☕ Vous m’offrez un café ?', lockText: p => `Ce jeu est fait par une seule personne, sans pub et sans collecte de données. S’il vous a fait sourire, vous pouvez m’offrir un café (${p} la tasse ; vous pouvez en ajouter sur la page de paiement). En remerciement, vous débloquez tout de suite le Super Porte-bonheur (4 couleurs, avec votre prénom) et la carte dorée. Aucune obligation 🙏`,
+  lockTitle: '☕ Vous m’offrez un café ?', lockText: p => `Ce jeu est fait par une seule personne, sans pub et sans collecte de données personnelles. S’il vous a fait sourire, vous pouvez m’offrir un café (${p} la tasse ; vous pouvez en ajouter sur la page de paiement). En remerciement, vous débloquez tout de suite le Super Porte-bonheur (4 couleurs, avec votre prénom) et la carte dorée. Aucune obligation 🙏`,
   support: p => `M’offrir un café · ${p}`, soon: 'Le soutien arrive bientôt', demo: 'Exemple', thanks: 'Merci pour votre soutien ! Le porte-bonheur et la carte dorée sont débloqués.', gold: 'Carte dorée', close: 'Fermer',
   numTitle: 'Numéros porte-bonheur du jour', goldTitle: 'Carte dorée porte-bonheur', goldDate: 'Réservé aux soutiens', goldTag: 'OR', kGood: 'Oui', kBad: 'Non', kColor: 'Teinte',
   goods: ['Un thé glacé, en toute discrétion', 'Offrez-vous un bon repas', 'Couchez-vous tôt', 'Dînez en famille', 'Rangez votre placard', 'Allez marcher au grand air'],
@@ -6615,7 +6631,7 @@ de: {
   tabNum: 'Glückszahlen', tabOma: 'Super-Glücksbringer', nameLbl: 'Dein Name (steht auf der Karte, optional)', namePh: 'z. B. Lena', colorLbl: 'Farbe des Glücksbringers',
   colors: { red: 'Rot', purple: 'Lila', gold: 'Gold', navy: 'Marine' }, share: 'Teilen', save: 'Bild speichern', saved: 'Gespeichert.',
   hold: 'Falls das Speichern nicht klappt: Bild lange drücken (oder Rechtsklick).', shareText: 'Ich habe meine Glückszahlen von heute in Der Tag nach dem Lotto 🍀 Probier’s aus!', shareVia: 'Teilen auf:',
-  lockTitle: '☕ Spendierst du mir einen Kaffee?', lockText: p => `Dieses Spiel macht eine einzige Person – ohne Werbung und ohne Datensammeln. Wenn es dich zum Lächeln gebracht hat, spendier mir einen Kaffee (${p} pro Tasse – auf der Zahlungsseite kannst du mehr Tassen wählen). Als Dankeschön schaltest du sofort den Super-Glücksbringer (4 Farben, mit deinem Namen) und die Goldkarte frei. Ganz ohne Druck 🙏`,
+  lockTitle: '☕ Spendierst du mir einen Kaffee?', lockText: p => `Dieses Spiel macht eine einzige Person – ohne Werbung und ohne persönliche Daten zu sammeln. Wenn es dich zum Lächeln gebracht hat, spendier mir einen Kaffee (${p} pro Tasse – auf der Zahlungsseite kannst du mehr Tassen wählen). Als Dankeschön schaltest du sofort den Super-Glücksbringer (4 Farben, mit deinem Namen) und die Goldkarte frei. Ganz ohne Druck 🙏`,
   support: p => `Kaffee spendieren · ${p}`, soon: 'Unterstützung kommt bald', demo: 'Beispiel', thanks: 'Danke für deine Unterstützung! Glücksbringer und Goldkarte sind freigeschaltet.', gold: 'Goldkarte', close: 'Schließen',
   numTitle: 'Glückszahlen von heute', goldTitle: 'Goldene Glückskarte', goldDate: 'Nur für Unterstützer', goldTag: 'GOLD', kGood: 'Ja', kBad: 'Nein', kColor: 'Farbe',
   goods: ['Einen Eistee trinken, ganz leise', 'Dir etwas Gutes gönnen', 'Früh schlafen gehen', 'Mit der Familie essen', 'Den Kleiderschrank aufräumen', 'Spazieren gehen, frische Luft'],
@@ -6632,7 +6648,7 @@ id: {
   tabNum: 'Kartu angka hoki', tabOma: 'Jimat Super Hoki', nameLbl: 'Namamu (dicetak di kartu, boleh kosong)', namePh: 'mis. Budi', colorLbl: 'Warna jimat',
   colors: { red: 'Merah', purple: 'Ungu', gold: 'Emas', navy: 'Biru tua' }, share: 'Bagikan', save: 'Simpan gambar', saved: 'Tersimpan.',
   hold: 'Kalau gagal menyimpan, tekan lama (atau klik kanan) gambarnya.', shareText: 'Aku dapat angka hoki hari ini di Sehari Setelah Lotre 🍀 Coba deh!', shareVia: 'Bagikan ke:',
-  lockTitle: '☕ Traktir aku kopi?', lockText: p => `Game ini dibuat oleh satu orang, tanpa iklan dan tanpa mengumpulkan datamu. Kalau game ini bikin kamu tersenyum, traktir aku segelas kopi (${p} per gelas; jumlahnya bisa ditambah di halaman pembayaran). Sebagai terima kasih, Jimat Super Hoki (4 warna, dengan namamu) dan kartu emas langsung terbuka. Tidak ada paksaan 🙏`,
+  lockTitle: '☕ Traktir aku kopi?', lockText: p => `Game ini dibuat oleh satu orang, tanpa iklan dan tanpa mengumpulkan data pribadimu. Kalau game ini bikin kamu tersenyum, traktir aku segelas kopi (${p} per gelas; jumlahnya bisa ditambah di halaman pembayaran). Sebagai terima kasih, Jimat Super Hoki (4 warna, dengan namamu) dan kartu emas langsung terbuka. Tidak ada paksaan 🙏`,
   support: p => `Traktir kopi · ${p}`, soon: 'Fitur dukungan segera hadir', demo: 'Contoh', thanks: 'Terima kasih atas dukunganmu! Jimat dan kartu emas sudah terbuka.', gold: 'Kartu emas', close: 'Tutup',
   numTitle: 'Angka hoki hari ini', goldTitle: 'Kartu angka hoki emas', goldDate: 'Khusus pendukung', goldTag: 'EMAS', kGood: 'Baik', kBad: 'Hindari', kColor: 'Warna',
   goods: ['Minum es teh, diam-diam saja', 'Traktir diri sendiri makan enak', 'Tidur lebih awal', 'Makan malam bareng keluarga', 'Rapikan lemari', 'Jalan-jalan cari angin'],
@@ -6649,7 +6665,7 @@ th: {
   tabNum: 'การ์ดเลขนำโชค', tabOma: 'เครื่องรางโชคดีสุด ๆ', nameLbl: 'ชื่อของคุณ (พิมพ์บนการ์ด เว้นว่างได้)', namePh: 'เช่น สมชาย', colorLbl: 'สีเครื่องราง',
   colors: { red: 'แดง', purple: 'ม่วง', gold: 'ทอง', navy: 'กรมท่า' }, share: 'แชร์', save: 'บันทึกรูป', saved: 'บันทึกแล้ว',
   hold: 'ถ้าบันทึกไม่ได้ ให้กดค้าง (หรือคลิกขวา) ที่รูปเพื่อบันทึก', shareText: 'ได้เลขนำโชควันนี้จาก วันหลังถูกหวย 🍀 ลองเล่นดูสิ!', shareVia: 'แชร์ไปที่:',
-  lockTitle: '☕ เลี้ยงกาแฟสักแก้วไหม?', lockText: p => `เกมนี้ทำโดยคนคนเดียว ไม่มีโฆษณา และไม่เก็บข้อมูลของคุณ ถ้าเกมนี้ทำให้คุณยิ้มได้ เลี้ยงกาแฟสักแก้วนะ (แก้วละ ${p} เพิ่มจำนวนแก้วได้ในหน้าชำระเงิน) เป็นการขอบคุณ คุณจะปลดล็อกเครื่องรางโชคดีสุด ๆ (4 สี ใส่ชื่อได้) และการ์ดทองทันที ไม่สนับสนุนก็ไม่เป็นไรเลย 🙏`,
+  lockTitle: '☕ เลี้ยงกาแฟสักแก้วไหม?', lockText: p => `เกมนี้ทำโดยคนคนเดียว ไม่มีโฆษณา และไม่เก็บข้อมูลส่วนตัวของคุณ ถ้าเกมนี้ทำให้คุณยิ้มได้ เลี้ยงกาแฟสักแก้วนะ (แก้วละ ${p} เพิ่มจำนวนแก้วได้ในหน้าชำระเงิน) เป็นการขอบคุณ คุณจะปลดล็อกเครื่องรางโชคดีสุด ๆ (4 สี ใส่ชื่อได้) และการ์ดทองทันที ไม่สนับสนุนก็ไม่เป็นไรเลย 🙏`,
   support: p => `เลี้ยงกาแฟ · ${p}`, soon: 'ระบบสนับสนุนเร็ว ๆ นี้', demo: 'ตัวอย่าง', thanks: 'ขอบคุณที่สนับสนุน! ปลดล็อกเครื่องรางและการ์ดทองแล้ว', gold: 'การ์ดทอง', close: 'ปิด',
   numTitle: 'เลขนำโชควันนี้', goldTitle: 'การ์ดเลขนำโชคสีทอง', goldDate: 'เฉพาะผู้สนับสนุน', goldTag: 'ทอง', kGood: 'ควร', kBad: 'เลี่ยง', kColor: 'สี',
   goods: ['ดื่มชามะนาวเย็นเงียบ ๆ', 'เลี้ยงข้าวอร่อย ๆ ตัวเอง', 'นอนเร็วหน่อย', 'กินข้าวกับครอบครัว', 'จัดตู้เสื้อผ้า', 'ออกไปเดินรับลม'],
@@ -6666,7 +6682,7 @@ vi: {
   tabNum: 'Thẻ số may mắn', tabOma: 'Bùa Siêu May Mắn', nameLbl: 'Tên bạn (in trên thẻ, có thể bỏ trống)', namePh: 'vd: Minh', colorLbl: 'Màu bùa',
   colors: { red: 'Đỏ', purple: 'Tím', gold: 'Vàng', navy: 'Xanh đậm' }, share: 'Chia sẻ', save: 'Lưu ảnh', saved: 'Đã lưu.',
   hold: 'Nếu không lưu được, hãy nhấn giữ (hoặc nhấp chuột phải) vào ảnh.', shareText: 'Mình vừa nhận số may mắn hôm nay trong Ngày hôm sau trúng số 🍀 Thử đi!', shareVia: 'Chia sẻ lên:',
-  lockTitle: '☕ Mời mình ly cà phê nhé?', lockText: p => `Game này do một người làm, không quảng cáo và không thu thập dữ liệu của bạn. Nếu nó làm bạn mỉm cười, hãy mời mình một ly cà phê (${p} một ly, có thể tăng số ly ở trang thanh toán). Để cảm ơn, bạn sẽ mở khóa ngay Bùa Siêu May Mắn (4 màu, in tên bạn) và thẻ vàng. Không ủng hộ cũng hoàn toàn không sao 🙏`,
+  lockTitle: '☕ Mời mình ly cà phê nhé?', lockText: p => `Game này do một người làm, không quảng cáo và không thu thập dữ liệu cá nhân của bạn. Nếu nó làm bạn mỉm cười, hãy mời mình một ly cà phê (${p} một ly, có thể tăng số ly ở trang thanh toán). Để cảm ơn, bạn sẽ mở khóa ngay Bùa Siêu May Mắn (4 màu, in tên bạn) và thẻ vàng. Không ủng hộ cũng hoàn toàn không sao 🙏`,
   support: p => `Mời cà phê · ${p}`, soon: 'Tính năng ủng hộ sắp ra mắt', demo: 'Mẫu', thanks: 'Cảm ơn bạn đã ủng hộ! Bùa và thẻ vàng đã được mở khóa.', gold: 'Thẻ vàng', close: 'Đóng',
   numTitle: 'Số may mắn hôm nay', goldTitle: 'Thẻ số may mắn vàng', goldDate: 'Dành cho người ủng hộ', goldTag: 'VÀNG', kGood: 'Nên', kBad: 'Kỵ', kColor: 'Màu',
   goods: ['Uống ly trà chanh, lặng lẽ thôi', 'Tự thưởng một bữa ngon', 'Ngủ sớm', 'Ăn tối cùng gia đình', 'Dọn tủ quần áo', 'Đi dạo hóng gió'],
@@ -6828,10 +6844,114 @@ $('#lk-pay').addEventListener('click', e => { if (!lkLink()) e.preventDefault();
 (function lkThanks(){
   if (!/lb-thanks/.test(location.hash + location.search)) return;
   try { localStorage.setItem('lb-supporter', '1'); } catch (e) {}
-  LKS.gold = true;
+  LKS.gold = true; LKS.justPaid = true;
   try { history.replaceState(null, '', location.pathname); } catch (e) {}
   setTimeout(() => { lkOpen('oma'); $('#lk-msg').textContent = lk('thanks'); }, 400);
 })();
+
+/* ---------- next-step guide: a floating pill that points to the button to press ---------- */
+const GUIDE_TX = {
+  zh: { next: '下一步', pick: '揀一個選項' }, en: { next: 'Next', pick: 'Make a choice' },
+  cn: { next: '下一步', pick: '选一个选项' }, ja: { next: '次へ', pick: '選択肢を選ぼう' },
+  ko: { next: '다음', pick: '선택지를 고르세요' }, es: { next: 'Siguiente', pick: 'Elige una opción' },
+  pt: { next: 'Próximo', pick: 'Escolha uma opção' }, fr: { next: 'Suite', pick: 'Faites un choix' },
+  de: { next: 'Weiter', pick: 'Triff eine Wahl' }, id: { next: 'Berikutnya', pick: 'Pilih salah satu' },
+  th: { next: 'ต่อไป', pick: 'เลือกหนึ่งตัวเลือก' }, vi: { next: 'Tiếp theo', pick: 'Hãy chọn một lựa chọn' }
+};
+const GUIDE = (() => {
+  const gt = k => (GUIDE_TX[L] || GUIDE_TX.en)[k];
+  const shown = el => !!el && el.offsetParent !== null && !el.closest('[hidden]');
+  const SKIP = '#lk *, #lk-end *, #e-save, #e-copy, #e-again, #sound, .toggle, .toggles *';
+  function target(){
+    if (!$('#lk').hidden) return null;
+    const sc = $$('section.scene').find(s => !s.hidden);
+    if (!sc || sc.id === 's-end' || sc.id === 's-ch5') return null;
+    /* 1. an unanswered choice group */
+    for (const grp of $$('.choices', sc)) {
+      if (!shown(grp) || grp.querySelector('.picked')) continue;
+      const b = [...grp.querySelectorAll('button')].find(x => !x.disabled && shown(x));
+      if (b) return { el: grp, focus: b, label: gt('pick') };
+    }
+    const card = $$('.pcard:not([disabled])', sc).find(shown);
+    if (card) return { el: card.closest('.deck') || card, focus: card, label: gt('pick') };
+    /* 2. the main (non-secondary) button */
+    const b = $$('.btn:not(.alt)', sc).find(x => !x.disabled && shown(x) && !x.matches(SKIP));
+    if (b) return { el: b, focus: b, label: (b.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 26) };
+    return null;
+  }
+  let pill, cur = null, raf = 0;
+  function inView(el){
+    const r = el.getBoundingClientRect(), hud = $('.hud'), top = hud && shown(hud) ? Math.min(hud.getBoundingClientRect().bottom, innerHeight * .4) : 0;
+    return r.bottom > top + 24 && r.top < innerHeight - 70;
+  }
+  function update(){
+    raf = 0; if (!pill) return;
+    cur = target();
+    if (!cur || inView(cur.el)) { pill.hidden = true; return; }
+    const below = cur.el.getBoundingClientRect().top > 0;
+    pill.querySelector('.gd-arrow').textContent = below ? '⬇' : '⬆';
+    pill.querySelector('.gd-lbl').textContent = cur.label === gt('pick') ? cur.label : `${gt('next')}：${cur.label}`.replace('：', /^(zh|cn|ja)$/.test(L) ? '：' : ': ');
+    pill.classList.toggle('up', !below);
+    pill.hidden = false;
+  }
+  const kick = () => { if (!raf) raf = requestAnimationFrame(update); };
+  function go(){
+    if (!cur) return;
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    cur.el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+    const f = cur.focus; f.classList.remove('gd-pulse'); void f.offsetWidth; f.classList.add('gd-pulse');
+    setTimeout(() => f.classList.remove('gd-pulse'), 2400);
+    try { f.focus({ preventScroll: true }); } catch (e) {}
+  }
+  function init(){
+    pill = document.createElement('button'); pill.type = 'button'; pill.className = 'gd-pill'; pill.hidden = true;
+    pill.innerHTML = '<span class="gd-arrow" aria-hidden="true">⬇</span><span class="gd-lbl"></span>';
+    pill.addEventListener('click', () => { try { sfx.pop(); } catch (e) {} go(); });
+    document.body.appendChild(pill);
+    addEventListener('scroll', kick, { passive: true }); addEventListener('resize', kick);
+    new MutationObserver(kick).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['hidden', 'disabled', 'class'] });
+    kick();
+  }
+  return { init, kick };
+})();
+GUIDE.init();
+
+/* ---------- anonymous analytics (Umami, no cookies) — only on the real site ---------- */
+const STATS = (() => {
+  const ID = '6e0d4bc6-520c-422b-b80e-ae13d5d8216c';
+  const on = /(^|\.)dayafterlottery\.com$|\.github\.io$/.test(location.hostname);
+  const q = [];
+  if (on) {
+    const sc = document.createElement('script'); sc.defer = true; sc.src = 'https://cloud.umami.is/script.js'; sc.dataset.websiteId = ID;
+    sc.onload = () => { while (q.length) { try { window.umami.track(...q.shift()); } catch (e) {} } };
+    document.head.appendChild(sc);
+  }
+  function track(name, data){
+    if (!on) return;
+    const d = Object.assign({ lang: L }, data || {});
+    try { if (window.umami && window.umami.track) window.umami.track(name, d); else q.push([name, d]); } catch (e) {}
+  }
+  return { track };
+})();
+/* scenes reached (one event per scene per page load) */
+{
+  const seen = new Set(), NAMES = { 's-booth': 'booth', 's-draw': 'draw', 's-calm': 'win-night', 's-ch1': 'chapter1', 's-ch1end': 'chapter1-end',
+    's-ch2end': 'chapter2-end', 's-ch3end': 'chapter3-end', 's-ch4': 'chapter4', 's-ch5': 'ending' };
+  const _show = show;
+  show = function (id){ _show(id); if (NAMES[id] && !seen.has(id)) { seen.add(id); STATS.track('scene-' + NAMES[id], { char: PXA.CHAR_IDS[S.charIdx] || '' }); } };
+  const _end = endExtras;
+  endExtras = function (sc, titleKey){ _end(sc, titleKey); STATS.track('ending-title', { title: titleKey, grade: sc && sc.grade, char: PXA.CHAR_IDS[S.charIdx] || '' }); };
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('button, a'); if (!b || !b.id) return;
+  const map = { 'go-booth': ['start', () => ({ char: PXA.CHAR_IDS[S.charIdx] || '' })], 'bet': ['bet', () => ({ method: S.method || '' })],
+    'lk-home': ['lucky-open', () => ({ from: 'home' })], 'lk-end-num': ['lucky-open', () => ({ from: 'ending' })], 'lk-end-oma': ['lucky-open', () => ({ from: 'ending-oma' })],
+    'lk-end-pay': ['support-view', () => ({ from: 'ending' })], 'lk-share': ['lucky-share', () => ({ item: LKS.tab })], 'lk-save': ['lucky-save', () => ({ item: LKS.tab })],
+    'lk-pay': ['support-click', () => ({ price: lkPrice() })], 'e-save': ['ending-card-save', () => ({})], 'e-copy': ['ending-card-copy', () => ({})] };
+  const m = map[b.id]; if (m) STATS.track(m[0], m[1]());
+}, true);
+$('#lang').addEventListener('change', () => STATS.track('language-change'));
+if (LKS.justPaid) STATS.track('support-paid', { price: lkPrice() });
 
 [HOUSE, WORK, CHARS, NODES, EV, SHOP, PRESS, EV2, REQ, SEASONS, EV3, REU].forEach(zwalk);
 fresh(); applyLang(); setStep(-1); showResume(); showIntroTrivia(); dealDeck();
