@@ -6735,8 +6735,12 @@ function lkDraw(kind, opts = {}){
     serial: (gold ? 'GD-' : 'LK-') + (LUCKY.hash(who + day) % 1e8).toString(16).toUpperCase(),
     message: gold ? lk('goldMsg') : lk('msg'), sub: gold ? lk('goldSub') : lk('sub'), index: lk('index'), indexLabel: lk('index'), disclaimer: lk('disc') }, opts)).cv;
 }
-function lkCanvasToImg(cv, img){
-  return new Promise(res => cv.toBlob(b => { if (img.dataset.url) URL.revokeObjectURL(img.dataset.url); const u = URL.createObjectURL(b); img.dataset.url = u; img.src = u; res(b); }, 'image/png'));
+function lkCanvasToImg(cv, img, small){
+  /* data: URLs work in every sandbox (blob: URLs are blocked in some previews) */
+  let src = cv;
+  if (small) { src = document.createElement('canvas'); src.width = 360; src.height = 640; const g = src.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(cv, 0, 0, 360, 640); }
+  try { img.src = small ? src.toDataURL('image/jpeg', .88) : src.toDataURL('image/png'); } catch (e) {}
+  return new Promise(res => { try { cv.toBlob(b => res(b), 'image/png'); } catch (e) { res(null); } });
 }
 /* ---- modal ---- */
 function lkLocked(){ return LKS.tab === 'oma' && !lkSupporter(); }
@@ -6810,10 +6814,9 @@ async function lkEndPanel(){
   $('#lk-end-title').textContent = lk('endTitle'); $('#lk-end-hint').textContent = lk('endHint');
   $('#lk-end-num-l').textContent = lk('tabNum'); $('#lk-end-oma-l').textContent = lk('tabOma');
   $('#lk-end-pay').textContent = lk('lockTitle');
-  if (p.closest('[hidden]')) return;
   await lkFonts();
-  lkCanvasToImg(lkDraw('num'), $('#lk-end-num img'));
-  lkCanvasToImg(lkDraw('oma'), $('#lk-end-oma img'));
+  lkCanvasToImg(lkDraw('num'), $('#lk-end-num img'), true);
+  lkCanvasToImg(lkDraw('oma'), $('#lk-end-oma img'), true);
 }
 function lkRefresh(){
   if (!$('#lk')) return;
