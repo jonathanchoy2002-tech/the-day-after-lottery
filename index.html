@@ -758,6 +758,11 @@ body.lk-on{overflow:hidden}
 .lk-social{display:flex;flex-wrap:wrap;gap:6px}
 .lk-soc{text-decoration:none;color:var(--ink)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.lk-chip{position:fixed;right:12px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:890;display:flex;align-items:center;gap:2px;border-radius:999px;background:linear-gradient(180deg,#FF5A67,#E8323C);box-shadow:0 8px 24px rgba(0,0,0,.45);animation:gdIn .3s ease-out}
+.lk-chip[hidden]{display:none}
+.lk-chip-go{background:none;border:0;color:#fff;font:inherit;font-weight:900;font-size:14px;padding:11px 4px 11px 16px;cursor:pointer;white-space:nowrap}
+.lk-chip-x{background:none;border:0;color:rgba(255,255,255,.8);font-size:18px;line-height:1;padding:10px 12px 10px 6px;cursor:pointer}
+body.lk-on .lk-chip{display:none}
 /* next-step guide */
 .gd-pill{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:900;display:flex;align-items:center;gap:8px;max-width:calc(100vw - 32px);padding:11px 18px;border-radius:999px;border:2px solid #14204F;background:var(--gold,#FFD24A);color:#14204F;font:inherit;font-weight:900;font-size:15px;line-height:1.2;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.45),0 0 0 4px rgba(255,210,74,.25);animation:gdIn .25s ease-out}
 .gd-pill.up{top:calc(12px + env(safe-area-inset-top));bottom:auto}
@@ -1103,6 +1108,12 @@ body.lk-on .gd-pill{display:none}
       <div class="grade-row"><div class="grade" id="e-grade"></div><div class="stack"><span class="small" data-i="titleLbl"></span><p class="verdict-name" id="e-title"></p></div></div>
       <dl class="stats" id="e-parts"></dl>
     </div>
+    <div class="panel stack" id="lk-end">
+      <h2 id="lk-end-title"></h2>
+      <p class="small" id="lk-end-hint"></p>
+      <div class="lk-thumbs"><button type="button" class="lk-thumb" id="lk-end-num"><img alt="" width="1080" height="1920"><span id="lk-end-num-l"></span></button><button type="button" class="lk-thumb" id="lk-end-oma"><img alt="" width="1080" height="1920"><span id="lk-end-oma-l"></span></button></div>
+      <button class="btn wide" type="button" id="lk-end-pay"></button>
+    </div>
     <div class="panel stack"><h2 data-i="timelineTitle"></h2><ul class="spend" id="e-timeline"></ul></div>
     <div class="panel stack"><h2 data-i="parallelTitle"></h2><div id="e-parallel" class="stack"></div></div>
     <div class="stack" id="e-truth"></div>
@@ -1113,12 +1124,6 @@ body.lk-on .gd-pill{display:none}
       <div class="pair"><button class="btn" type="button" id="e-save" data-i="saveImg"></button><button class="btn alt" type="button" id="e-copy" data-i="copyTxt"></button></div>
       <p class="small" id="e-card-msg" aria-live="polite"></p>
       <p class="small" id="e-copy-msg" aria-live="polite"></p>
-    </div>
-    <div class="panel stack" id="lk-end">
-      <h2 id="lk-end-title"></h2>
-      <p class="small" id="lk-end-hint"></p>
-      <div class="lk-thumbs"><button type="button" class="lk-thumb" id="lk-end-num"><img alt="" width="1080" height="1920"><span id="lk-end-num-l"></span></button><button type="button" class="lk-thumb" id="lk-end-oma"><img alt="" width="1080" height="1920"><span id="lk-end-oma-l"></span></button></div>
-      <button class="btn wide" type="button" id="lk-end-pay"></button>
     </div>
     <div class="panel stack">
       <h2 data-i="albumTitle"></h2>
@@ -6851,6 +6856,27 @@ $('#lk-pay').addEventListener('click', e => { if (!lkLink()) e.preventDefault();
   try { history.replaceState(null, '', location.pathname); } catch (e) {}
   setTimeout(() => { lkOpen('oma'); $('#lk-msg').textContent = lk('thanks'); }, 400);
 })();
+/* ---- floating coffee chip on the ending screen (gentle, dismissible) ---- */
+(function lkChip(){
+  const chip = document.createElement('div'); chip.className = 'lk-chip'; chip.hidden = true;
+  chip.innerHTML = '<button type="button" class="lk-chip-go"></button><button type="button" class="lk-chip-x" aria-label="×">×</button>';
+  document.body.appendChild(chip);
+  let closed = false, raf = 0;
+  const set = (el, k, v) => { if (el[k] !== v) el[k] = v; };
+  const upd = () => {
+    raf = 0;
+    const end = $('#s-ch5'), box = $('#lk-end');
+    if (closed || lkSupporter() || !end || end.hidden || !$('#lk').hidden) { set(chip, 'hidden', true); return; }
+    const r = box.getBoundingClientRect(), seen = r.bottom > 0 && r.top < innerHeight;
+    set(chip.querySelector('.lk-chip-go'), 'textContent', lk('support')('US$' + lkPrice()));
+    set(chip, 'hidden', seen);
+  };
+  chip.querySelector('.lk-chip-go').addEventListener('click', () => { try { sfx.pop(); } catch (e) {} lkOpen('oma'); try { STATS.track('support-view', { from: 'chip' }); } catch (e) {} });
+  chip.querySelector('.lk-chip-x').addEventListener('click', () => { closed = true; chip.hidden = true; });
+  const kick = () => { if (!raf) raf = requestAnimationFrame(upd); };
+  addEventListener('scroll', kick, { passive: true }); addEventListener('resize', kick);
+  new MutationObserver(kick).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['hidden'] });
+})();
 
 /* ---------- next-step guide: a floating pill that points to the button to press ---------- */
 const GUIDE_TX = {
@@ -6890,12 +6916,12 @@ const GUIDE = (() => {
   function update(){
     raf = 0; if (!pill) return;
     cur = target();
-    if (!cur || inView(cur.el)) { pill.hidden = true; return; }
+    if (!cur || inView(cur.el)) { if (!pill.hidden) pill.hidden = true; return; }
     const below = cur.el.getBoundingClientRect().top > 0;
-    pill.querySelector('.gd-arrow').textContent = below ? '⬇' : '⬆';
-    pill.querySelector('.gd-lbl').textContent = cur.label === gt('pick') ? cur.label : `${gt('next')}：${cur.label}`.replace('：', /^(zh|cn|ja)$/.test(L) ? '：' : ': ');
-    pill.classList.toggle('up', !below);
-    pill.hidden = false;
+    { const a = pill.querySelector('.gd-arrow'), v = below ? '⬇' : '⬆'; if (a.textContent !== v) a.textContent = v; }
+    { const el = pill.querySelector('.gd-lbl'), v = cur.label === gt('pick') ? cur.label : `${gt('next')}：${cur.label}`.replace('：', /^(zh|cn|ja)$/.test(L) ? '：' : ': '); if (el.textContent !== v) el.textContent = v; }
+    if (pill.classList.contains('up') !== !below) pill.classList.toggle('up', !below);
+    if (pill.hidden) pill.hidden = false;
   }
   const kick = () => { if (!raf) raf = requestAnimationFrame(update); };
   function go(){
