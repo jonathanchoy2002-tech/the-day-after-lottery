@@ -793,7 +793,7 @@ body.lk-on .lk-chip{display:none}
 @keyframes gdPulse{0%{box-shadow:0 0 0 0 rgba(255,210,74,.9)}100%{box-shadow:0 0 0 18px rgba(255,210,74,0)}}
 @media (prefers-reduced-motion: reduce){.gd-pill,.gd-arrow,.gd-pulse{animation:none!important}}
 body.lk-on .gd-pill{display:none}
-</style>
+.grid2 button[aria-pressed=true]{background:var(--bc)!important;color:#14204F!important}.ball.bonusb{--ink:#14204F}.t-num.t-bonus{background:var(--bc)!important;color:#14204F!important;border-radius:50%}.pick-row .plus,#tray .plus{align-self:center;font-weight:900}</style>
 
 <canvas id="fx" aria-hidden="true"></canvas>
 <div class="wrap">
@@ -849,6 +849,8 @@ body.lk-on .gd-pill{display:none}
       </div>
       <div id="m-self" class="stack mpanel" hidden>
         <div class="grid" id="grid"></div>
+        <p class="small" id="grid2-l" hidden></p>
+        <div class="grid grid2" id="grid2" hidden></div>
         <div class="row">
           <button class="btn alt" id="self-clear" type="button" data-i="clear"></button>
           <button class="btn alt" id="self-fill" type="button" data-i="fill"></button>
@@ -2551,7 +2553,8 @@ const t = k => sub(T[L] ? T[L][k] : tget(k));
 let SEEN = [];
 try { SEEN = JSON.parse(localStorage.getItem('lb-truths') || '[]'); if (!Array.isArray(SEEN)) SEEN = []; } catch (e) { SEEN = []; }
 function markSeen(k){ if (typeof S !== 'undefined' && S) { S.runSeen = S.runSeen || []; if (!S.runSeen.includes(k)) S.runSeen.push(k); } if (SEEN.includes(k)) return; SEEN.push(k); try { localStorage.setItem('lb-truths', JSON.stringify(SEEN)); } catch (e) {} }
-const truthHTML = (tag, text, src) => (markSeen(text), `<div class="truth"><span class="tag">${t(tag)}</span><p>${t(text)}</p>${src ? `<a href="${src[1]}" target="_blank" rel="noopener">${t('src')}${src[0]}</a>` : ''}</div>`);
+const truthHTML = (tag, text, src) => { const k2 = locSwap(text); if (k2 !== text) { text = k2; tag = tagOf(k2); src = srcOf(k2); } return truthHTML0(tag, text, src); };
+const truthHTML0 = (tag, text, src) => (markSeen(text), `<div class="truth"><span class="tag">${t(tag)}</span><p>${t(text)}</p>${src ? `<a href="${src[1]}" target="_blank" rel="noopener">${t('src')}${src[0]}</a>` : ''}</div>`);
 
 /* ---------- animated pixel backdrop: sky, clouds, skyline, drifting coins ---------- */
 const BG = (() => {
@@ -2800,6 +2803,7 @@ function applyLang(){
   if (S.scene === 's-ch3end' && CH) showCh3End(true);
   if (S.scene === 's-ch4' && CH && CH.c4) { $('#c4-steps').innerHTML = t('c4Steps').map(x => `<li>${x}</li>`).join(''); c4Money(); }
   if (S.scene === 's-ch5' && CH) showEnding(true);
+  if (S.scene === 's-booth' && !$('#choose').hidden) { const nf = FMT_BY_LANG[L] || 'hk'; if (S.fmt !== nf) { S.fmt = nf; selectMethod(S.method || 'quick'); } gridHTML(); renderPick(); } else fmtUI();
   try { lkRefresh(); } catch (e) {}
 }
 $('#mark-bomb').innerHTML = PXA.bomb();
@@ -2878,12 +2882,13 @@ $('#go-booth').addEventListener('click', () => { if (!S.picked) return; audio();
 /* ---------- booth ---------- */
 function goBooth(){
   show('s-booth'); setStep(0);
+  S.fmt = FMT_BY_LANG[L] || 'hk'; S.numbers = S.numbers || []; gridHTML();
   $('#choose').hidden = false; $('#printing').hidden = true; $('#who').hidden = true; $('#print-out').innerHTML = '';
   $('#staff-line').textContent = t('staff')(t('big')(S.pool));
   selectMethod('quick');
 }
 function selectMethod(m){
-  S.method = m; S.numbers = []; S.qpRolled = false; S.cookieOpen = false;
+  S.method = m; S.numbers = []; S.bonus = null; S.qpRolled = false; S.cookieOpen = false;
   $$('.method').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
   $$('.mpanel').forEach(p => { p.hidden = p.id !== 'm-' + m; });
   $$('#grid button').forEach(b => b.setAttribute('aria-pressed', 'false'));
@@ -2892,59 +2897,100 @@ function selectMethod(m){
 }
 $$('.method').forEach(b => b.addEventListener('click', () => { sfx.pop(); selectMethod(b.dataset.m); }));
 
+/* ---------- lottery format per region (v42) ----------
+   n of max main numbers; extra = a special number drawn from the same pool (HK style);
+   bonus = a separate pick from its own small pool (US / CN / DE / FR / ES style). */
+const FMTS = {
+  hk: { n: 6, max: 49, extra: true, label: '6/49' },
+  us: { n: 5, max: 69, label: '5/69 + 1/26', bonus: { from: 1, max: 26, color: '#E8323C', name: 'Bonus Ball', call: 'And the red Bonus Ball is…' } },
+  cn: { n: 6, max: 33, label: '红球 6/33 + 蓝球 1/16', bonus: { from: 1, max: 16, color: '#2E5AD9', name: '蓝球', call: '最后是蓝球……' } },
+  kr: { n: 6, max: 45, extra: true, label: '6/45' },
+  jp: { n: 6, max: 43, extra: true, label: '6/43' },
+  vn: { n: 6, max: 45, label: '6/45' },
+  br: { n: 6, max: 60, label: '6/60' },
+  de: { n: 6, max: 49, label: '6 aus 49 + Superzahl', bonus: { from: 0, max: 9, color: '#FFC83D', name: 'Superzahl', call: 'Und die Superzahl lautet…' } },
+  fr: { n: 5, max: 49, label: '5/49 + N° Chance', bonus: { from: 1, max: 10, color: '#E8323C', name: 'N° Chance', call: 'Et le numéro Chance est…' } },
+  es: { n: 6, max: 49, label: '6/49 + reintegro', bonus: { from: 0, max: 9, color: '#FFC83D', name: 'Reintegro', call: 'Y el reintegro es…' } }
+};
+const FMT_BY_LANG = { zh: 'hk', en: 'us', cn: 'cn', ko: 'kr', ja: 'jp', vi: 'vn', pt: 'br', de: 'de', fr: 'fr', es: 'es', id: 'hk', th: 'hk' };
+const F = () => FMTS[(S && S.fmt) || FMT_BY_LANG[L]] || FMTS.hk;
+const bonusRand = () => { const b = F().bonus; return b.from + rand(b.max - b.from + 1); };
+const bonusHTML = (n, cls) => `<span class="ball bonusb ${cls || ''}" style="--bc:${F().bonus.color}">${F().bonus.from === 0 ? n : pad(n)}</span>`;
+const fmtNums = s => String(s).replace(/(^|[^\d])6(?!\d)/, (m, a) => a + F().n).replace(/49/, F().max);
+function fmtUI(){
+  const md = $('[data-i="m_self_d"]'); if (md) md.textContent = fmtNums(t('m_self_d')) + (F().bonus ? ' + ' + F().bonus.name : '');
+  const g = $('#grid'); if (g) g.setAttribute('aria-label', fmtNums(t('gridAria')));
+}
+function fmtGame(){ const parts = String(t('game')).split(/\s+·\s+/); parts[0] = F().label; return parts.join(' · '); }
+function gridHTML(){
+  let html = ''; for (let n = 1; n <= F().max; n++) html += `<button type="button" data-n="${n}" aria-pressed="${!!(S && S.numbers && S.numbers.includes(n))}">${pad(n)}</button>`;
+  $('#grid').innerHTML = html;
+  const g2 = $('#grid2'), b = F().bonus;
+  if (g2) {
+    g2.hidden = !b; $('#grid2-l').hidden = !b;
+    if (b) { $('#grid2-l').textContent = b.name; let h = ''; for (let n = b.from; n <= b.max; n++) h += `<button type="button" data-b="${n}" aria-pressed="${!!S && S.bonus === n}" style="--bc:${b.color}">${b.from === 0 ? n : pad(n)}</button>`; g2.innerHTML = h; }
+  }
+  fmtUI();
+}
+function cookieNums(){ const base = COOKIE.filter(x => x <= F().max).slice(0, F().n); return randomSet(F().max, base); }
+window.__fmt = () => ({ S, f: F() });
+
 function renderPick(){
   const nums = S.numbers;
   let html = '';
-  for (let i = 0; i < 6; i++) html += nums[i] ? ballHTML(nums[i]) : '<span class="ball empty" aria-hidden="true">00</span>';
+  const N = F().n, B = F().bonus;
+  for (let i = 0; i < N; i++) html += nums[i] ? ballHTML(nums[i]) : '<span class="ball empty" aria-hidden="true">00</span>';
+  if (B) html += '<span class="plus">+</span>' + (S.bonus != null ? bonusHTML(S.bonus) : '<span class="ball empty" aria-hidden="true">00</span>');
   $('#pick-row').innerHTML = html;
-  let note = nums.length === 6 ? `${t('method')[S.method]}：${nums.map(pad).join(LSEP())}` : nums.length ? t('picked')(nums.length) : t('none');
-  if (!CJK() && nums.length === 6) note = note.replace('：', ': ');
-  if (S.method === 'bday' && nums.length === 6) note += t('bdayNote');
+  const full = nums.length === N && (!B || S.bonus != null);
+  let note = full ? `${t('method')[S.method]}：${nums.map(pad).join(LSEP())}${B ? ' + ' + B.name + ' ' + S.bonus : ''}` : nums.length ? t('picked')(nums.length) : t('none');
+  if (!CJK() && full) note = note.replace('：', ': ');
+  if (S.method === 'bday' && full) note += t('bdayNote');
   $('#pick-note').textContent = note;
-  $('#bet').disabled = nums.length !== 6;
+  $('#bet').disabled = !full;
 }
 function randomSet(max, keep){
   const s = new Set(keep || []);
-  while (s.size < 6) s.add(1 + rand(max));
+  while (s.size < F().n) s.add(1 + rand(max));
   return [...s].sort((a, b) => a - b);
 }
 $('#qp-go').addEventListener('click', async () => {
   const btn = $('#qp-go'); btn.disabled = true;
-  for (let i = 0; i < (reduce ? 1 : 10); i++) { S.numbers = randomSet(49); renderPick(); sfx.tick(); await sleep(70); }
-  S.numbers = randomSet(49); S.qpRolled = true; renderPick(); sfx.pop();
+  for (let i = 0; i < (reduce ? 1 : 10); i++) { S.numbers = randomSet(F().max); if (F().bonus) S.bonus = bonusRand(); renderPick(); sfx.tick(); await sleep(70); }
+  S.numbers = randomSet(F().max); if (F().bonus) S.bonus = bonusRand(); S.qpRolled = true; renderPick(); sfx.pop();
   btn.disabled = false; btn.textContent = t('qpAgain');
 });
 (function buildGrid(){
-  const g = $('#grid'); let html = '';
-  for (let n = 1; n <= 49; n++) html += `<button type="button" data-n="${n}" aria-pressed="false">${pad(n)}</button>`;
-  g.innerHTML = html;
+  const g = $('#grid');
+  gridHTML();
+  $('#grid2').addEventListener('click', e => { const b = e.target.closest('[data-b]'); if (!b) return; S.bonus = +b.dataset.b; $$('#grid2 button').forEach(x => x.setAttribute('aria-pressed', String(+x.dataset.b === S.bonus))); sfx.tick(); renderPick(); });
   g.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     const n = +b.dataset.n; const on = S.numbers.includes(n);
     if (on) S.numbers = S.numbers.filter(x => x !== n);
-    else if (S.numbers.length < 6) S.numbers = [...S.numbers, n].sort((a, c) => a - c);
+    else if (S.numbers.length < F().n) S.numbers = [...S.numbers, n].sort((a, c) => a - c);
     else return;
     b.setAttribute('aria-pressed', String(!on)); sfx.tick(); renderPick();
   });
 })();
-function syncGrid(){ $$('#grid button').forEach(b => b.setAttribute('aria-pressed', String(S.numbers.includes(+b.dataset.n)))); }
-$('#self-clear').addEventListener('click', () => { S.numbers = []; syncGrid(); renderPick(); });
-$('#self-fill').addEventListener('click', () => { S.numbers = randomSet(49, S.numbers); syncGrid(); renderPick(); sfx.pop(); });
+function syncGrid(){ $$('#grid button').forEach(b => b.setAttribute('aria-pressed', String(S.numbers.includes(+b.dataset.n)))); $$('#grid2 button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.b === S.bonus))); }
+$('#self-clear').addEventListener('click', () => { S.numbers = []; S.bonus = null; syncGrid(); renderPick(); });
+$('#self-fill').addEventListener('click', () => { S.numbers = randomSet(F().max, S.numbers); if (F().bonus && S.bonus == null) S.bonus = bonusRand(); syncGrid(); renderPick(); sfx.pop(); });
 $('#bday-go').addEventListener('click', () => {
   const v = $('#bday').value; if (!v) return;
   const [y, m, d] = v.split('-').map(Number);
   const fit = x => ((x - 1) % 31 + 31) % 31 + 1;
   const base = [d, m, fit(y % 100), fit(d + m), fit(Math.abs(d - m) || 1)];
-  S.numbers = randomSet(31, [...new Set(base)].slice(0, 6));
+  S.numbers = randomSet(Math.min(31, F().max), [...new Set(base)].slice(0, F().n)); if (F().bonus) S.bonus = F().bonus.from === 0 ? d % 10 : (d - 1) % F().bonus.max + 1;
   renderPick(); sfx.pop();
 });
 function renderCookie(){
   const box = $('#cookie-box');
   if (S.cookieOpen) {
-    box.innerHTML = `<div class="cookie-slip">${t('cookieSlip')(COOKIE.map(pad).join(' '))}</div><p class="small">${t('cookieNote')}</p>`;
+    box.innerHTML = `<div class="cookie-slip">${t('cookieSlip')(S.numbers.map(pad).join(' ') + (F().bonus && S.bonus != null ? ' + ' + S.bonus : ''))}</div><p class="small">${t('cookieNote')}</p>`;
   } else {
     box.innerHTML = `<p>${t('cookieIntro')}</p><button class="btn alt" id="cookie-go" type="button">${t('cookieGo')}</button>`;
-    $('#cookie-go').addEventListener('click', () => { S.cookieOpen = true; S.numbers = [...COOKIE]; renderCookie(); renderPick(); sfx.pop(); });
+    $('#cookie-go').addEventListener('click', () => { S.cookieOpen = true; S.numbers = cookieNums(); if (F().bonus) S.bonus = F().bonus.from === 0 ? 7 : Math.min(7, F().bonus.max); renderCookie(); renderPick(); sfx.pop(); });
   }
 }
 
@@ -2967,7 +3013,7 @@ function computeOutcome(){
   else if (S.method === 'bday') S.winners = 6 + rand(23);
   else S.winners = 40 + rand(71);
   S.prize = Math.floor(S.pool / S.winners / 10) * 10;
-  do { S.extra = 1 + rand(49); } while (nums.includes(S.extra));
+  do { S.extra = 1 + rand(F().max); } while (nums.includes(S.extra));
   S.heat = char().heat; S.stress = char().stress; S.knows = []; S.caughtBy = [];
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   S.serial = Array.from({ length: 3 }, () => Array.from({ length: 4 }, () => chars[rand(chars.length)]).join('')).join('-');
@@ -2975,8 +3021,8 @@ function computeOutcome(){
 function today(){ const d = new Date(); return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())}`; }
 function ticketHTML(){
   return `<div class="ticket">
-    <div class="t-head"><span class="t-brand">${t('brand')}</span><span>${t('game')}</span></div>
-    <div class="t-nums">${S.numbers.map(n => `<span class="t-num" data-n="${n}">${pad(n)}</span>`).join('')}</div>
+    <div class="t-head"><span class="t-brand">${t('brand')}</span><span>${fmtGame()}</span></div>
+    <div class="t-nums">${S.numbers.map(n => `<span class="t-num" data-n="${n}">${pad(n)}</span>`).join('')}${F().bonus && S.bonus != null ? `<span class="t-num t-bonus" data-b="${S.bonus}" style="--bc:${F().bonus.color}">${F().bonus.from === 0 ? S.bonus : pad(S.bonus)}</span>` : ''}</div>
     <div class="t-foot"><span>${t('method')[S.method]} · ${t('perLine')}</span><span>${t('drawDate')} ${today()}</span></div>
     <div class="barcode" aria-hidden="true"></div>
     <div class="t-serial">${S.serial}</div></div>`;
@@ -3051,7 +3097,7 @@ function initMachine(){
     '--b1': css('--b1'), '--b2': css('--b2'), '--b3': css('--b3'), '--b4': css('--b4'), '--b5': css('--b5') };
   M.spr = {};
   M.balls = []; M.moving = null; M.held = null;
-  for (let n = 1; n <= 49; n++) {
+  for (let n = 1; n <= F().max; n++) {
     const a = Math.random() * Math.PI * 2, r = Math.random() * (M.R - M.br * 2);
     M.balls.push({ n, x: M.cx + Math.cos(a) * r, y: M.cy + Math.abs(Math.sin(a)) * r, vx: 0, vy: 0 });
   }
@@ -3202,8 +3248,8 @@ function flipRead(n){
 }
 function blurRead(n){
   const s = String(n);
-  if (s.length === 2) { const sw = +(s[1] + s[0]); if (sw >= 1 && sw <= 49 && sw !== n && !S.numbers.includes(sw)) return sw; }
-  for (const c of [n + 1, n - 1, n + 10, n - 10]) if (c >= 1 && c <= 49 && !S.numbers.includes(c)) return c;
+  if (s.length === 2) { const sw = +(s[1] + s[0]); if (sw >= 1 && sw <= F().max && sw !== n && !S.numbers.includes(sw)) return sw; }
+  for (const c of [n + 1, n - 1, n + 10, n - 10]) if (c >= 1 && c <= F().max && !S.numbers.includes(c)) return c;
   return n === 1 ? 2 : 1;
 }
 
@@ -3217,8 +3263,8 @@ async function runDraw(){
   const mum = S.checker === 'mum';
   $('#who-title').textContent = mum ? t('checkingMum') : t('checkingSelf');
   $('#draw-ticket').innerHTML = ticketHTML();
-  $('#tray').innerHTML = '<span class="ball empty"></span>'.repeat(6) + '<span class="plus">+</span><span class="ball empty"></span>';
-  $('#hits').textContent = '0 / 6'; setBeat(0);
+  $('#tray').innerHTML = '<span class="ball empty"></span>'.repeat(F().n) + (F().extra || F().bonus ? '<span class="plus">+</span><span class="ball empty"></span>' : '');
+  $('#hits').textContent = '0 / ' + F().n; setBeat(0);
   $('#draw-result').hidden = true; $('#boom').hidden = true; $('#call').hidden = true; $('#standby').hidden = true; hideCloseUp();
   $('#tv').classList.remove('tense', 'shake');
   react(mum ? t('startMum') : t('startSelf'));
@@ -3236,8 +3282,8 @@ async function runDraw(){
   say(t('hMix')); M.speed = 2.2;
   await sleep(2400);
 
-  for (let i = 0; i < 6; i++) {
-    const n = order[i], last = i === 5;
+  for (let i = 0; i < F().n; i++) {
+    const n = order[i], last = i === F().n - 1;
     say(t('hBall')(i + 1));
     M.speed = i >= 2 ? 3 : 2.2;
     if (i >= 2) $('#tv').classList.add('tense');
@@ -3259,12 +3305,20 @@ async function runDraw(){
   $('#boom').hidden = false; sfx.win(); fireworks(); M.speed = .6;
   await sleep(2300);
   $('#boom').hidden = true;
+  if (F().bonus) {
+    say(F().bonus.call); await sleep(1400);
+    $$('#tray .ball')[F().n].outerHTML = bonusHTML(S.bonus, 'in');
+    const tb = $('#draw-ticket .t-bonus'); if (tb) tb.classList.add('hit');
+    say((F().bonus.from === 0 ? S.bonus : pad(S.bonus)) + '!'); sfx.ding();
+    await sleep(1200);
+  } else if (F().extra) {
   say(t('hExtra')); await sleep(1100);
   await drawOut(S.extra);
   await closeUp(S.extra, 0, false);
-  $$('#tray .ball')[6].outerHTML = ballHTML(S.extra, 'in');
+  $$('#tray .ball')[F().n].outerHTML = ballHTML(S.extra, 'in');
   say(pad(S.extra) + '.'); sfx.pop();
   await sleep(1100); hideCloseUp();
+  }
   say(t('hFinal')(S.winners, money(S.prize)));
 
   if (mum) { S.heat += 35; S.knows.push('knowMum', 'knowAuntie'); }
@@ -3274,7 +3328,7 @@ function revealBall(n, i, mum){
   $$('#tray .ball')[i].outerHTML = ballHTML(n, 'in');
   say(pad(n) + '!');
   const box = $(`#draw-ticket .t-num[data-n="${n}"]`); if (box) box.classList.add('hit');
-  sfx.ding(); $('#hits').textContent = `${i + 1} / 6`; setBeat(i + 1);
+  sfx.ding(); $('#hits').textContent = `${i + 1} / ${F().n}`; setBeat(i + 1);
   react(t(mum ? 'mum' : 'self')[i]);
 }
 async function stuckSequence(){
@@ -3287,7 +3341,7 @@ async function stuckSequence(){
   await sleep(1900);
   $('#standby').hidden = true; say(t('hTap')); sfx.tick(); await sleep(400); sfx.tick();
   await sleep(1100);
-  M.speed = 3; say(t('hBall')(6));
+  M.speed = 3; say(t('hBall')(F().n));
 }
 async function misreadSequence(n){
   const mum = S.checker === 'mum';
@@ -3297,9 +3351,9 @@ async function misreadSequence(n){
     say(`……${flip}!`.replace('……', L === 'zh' ? '……' : '…')); sfx.buzz();
     react(mum ? t('rMissMum') : t('rMissSelf'));
     await sleep(2100);
-    say(flip > 49 ? t('hOver49') : t('hFlip'));
+    say(flip > F().max ? String(t('hOver49')).replace(/49/g, F().max) : t('hFlip'));
     await sleep(1300); await fixCloseUp();
-    if (flip > 49) { say(t('hBall')(6)); await sleep(700); }
+    if (flip > F().max) { say(t('hBall')(F().n)); await sleep(700); }
   } else {
     const w = blurRead(n);
     await closeUp(n, 0, true);
@@ -3324,7 +3378,7 @@ async function phoneSequence(){
   } else {
     react(mum ? t('decMum') : t('decSelf'));
     if (mum) S.heat += 5;
-    say(t('hBall')(6)); await sleep(900);
+    say(t('hBall')(F().n)); await sleep(900);
   }
 }
 
@@ -6408,14 +6462,44 @@ const RULE_TAG = ['tHKclaim', 'tClaim', 'tCaTax', 'tUsTax', 'tJapan', 'tHk46', '
 const tagOf = k => RULE_TAG.includes(k) ? 'tagRule' : DATA_TAG.includes(k) ? 'tagData' : 'tagRecord';
 const srcOf = k => SRC[TRUTH_SRC[k]] || (k === 'tOdds' ? SRC.odds : k === 'tClaim' ? SRC.claim : null);
 
+/* ---------- per-country truth cards (v43) ---------- */
+const LOCAL_TRUTHS = [{"key": "usPowerballAnyPrize", "lang": "en", "topic": "odds", "kind": "data", "native": "The overall odds of winning any Powerball prize, even $4, are about 1 in 24.87, so roughly 96% of tickets win nothing at all.", "en": "The overall odds of winning any Powerball prize, even $4, are about 1 in 24.87, so roughly 96% of tickets win nothing at all.", "src": "CNBC / MUSL", "url": "https://www.cnbc.com/2023/06/24/odds-of-winning-427-million-dollar-powerball-jackpot.html", "isOdds": false}, {"key": "usFederalWithholding", "lang": "en", "topic": "money", "kind": "rule", "native": "US lotteries must withhold 24% federal tax on prizes over $5,000 before paying out; the winner may owe more when filing (IRS rules as of 2026).", "en": "US lotteries must withhold 24% federal tax on prizes over $5,000 before paying out; the winner may owe more when filing (IRS rules as of 2026).", "src": "IRS", "url": "https://www.irs.gov/instructions/iw2g", "isOdds": false}, {"key": "usClaimDeadline", "lang": "en", "topic": "life", "kind": "rule", "native": "Claim deadlines are set by each state: the Georgia ticket that won the $983 million Mega Millions jackpot in November 2025 had until May 13, 2026 to be claimed.", "en": "Claim deadlines are set by each state: the Georgia ticket that won the $983 million Mega Millions jackpot in November 2025 had until May 13, 2026 to be claimed.", "src": "USA Today via Yahoo", "url": "https://www.yahoo.com/news/articles/powerball-mega-millions-end-trifecta-214745603.html", "isOdds": false}, {"key": "usCastroAltadena", "lang": "en", "topic": "life", "kind": "record", "native": "Edwin Castro, who won the record $2.04 billion Powerball in November 2022, reportedly spent about $10 million in 2025 buying 15 fire-scorched lots in Altadena after the Eaton Fire.", "en": "Edwin Castro, who won the record $2.04 billion Powerball in November 2022, reportedly spent about $10 million in 2025 buying 15 fire-scorched lots in Altadena after the Eaton Fire.", "src": "FOX 11 Los Angeles", "url": "https://www.foxla.com/news/powerball-winner-edwin-castro-buys-altadena-lots-eaton-fire", "isOdds": false}, {"key": "usArkansasAnonymous", "lang": "en", "topic": "life", "kind": "record", "native": "The $1.817 billion Powerball won in Cabot, Arkansas on Christmas Eve 2025 ran a record 47 drawings; the winner took the $834.9 million cash option and stayed anonymous.", "en": "The $1.817 billion Powerball won in Cabot, Arkansas on Christmas Eve 2025 ran a record 47 drawings; the winner took the $834.9 million cash option and stayed anonymous.", "src": "FOX 29", "url": "https://www.fox29.com/news/arkansas-powerball-winner-comes-forward", "isOdds": false}, {"key": "usSplitJackpot2025", "lang": "en", "topic": "world", "kind": "record", "native": "The $1.787 billion Powerball of September 6, 2025 was split by two tickets, from a St. Louis QuikTrip and a Fredericksburg, Texas store, each worth $410.3 million in cash before taxes.", "en": "The $1.787 billion Powerball of September 6, 2025 was split by two tickets, from a St. Louis QuikTrip and a Fredericksburg, Texas store, each worth $410.3 million in cash before taxes.", "src": "USA Today via Yahoo", "url": "https://www.yahoo.com/news/articles/powerball-mega-millions-end-trifecta-214745603.html", "isOdds": false}, {"key": "brMegaSenaOdds", "lang": "pt", "topic": "odds", "kind": "data", "native": "Uma aposta simples de seis números na Mega-Sena tem 1 chance em 50.063.860 de acertar a sena, combinações de 6 dezenas entre 60.", "en": "A simple six-number Mega-Sena bet has a 1 in 50,063,860 chance of hitting the jackpot, the number of ways to pick 6 numbers from 60.", "src": "Nubank", "url": "https://blog.nubank.com.br/mega-da-virada-chances-de-ganhar/", "isOdds": true}, {"key": "brIncomeTax30", "lang": "pt", "topic": "money", "kind": "rule", "native": "Os prêmios das loterias da Caixa sofrem 30% de Imposto de Renda retido na fonte; o valor anunciado do prêmio já é o líquido, depois do desconto.", "en": "Caixa lottery prizes have 30% income tax withheld at source; the advertised jackpot is already the net amount after that deduction.", "src": "Money Times", "url": "https://www.moneytimes.com.br/imposto-de-renda-na-loteria-leva-30-do-premio-veja-quanto-sobra-dos-r-160-milhoes-da-mega-sena-apos-a-mordida-do-irpf/", "isOdds": false}, {"key": "brClaimDeadlineFies", "lang": "pt", "topic": "charity", "kind": "rule", "native": "Quem ganha tem 90 dias após o sorteio para resgatar; prêmios não sacados vão para o FIES, que recebeu mais de R$ 383 milhões até novembro de 2024.", "en": "Winners have 90 days after the draw to claim; unclaimed prizes go to the FIES student-loan fund, which had received over R$383 million by November 2024.", "src": "Folha Vitória", "url": "https://www.folhavitoria.com.br/economia/dinheiro-de-premios-nao-retirados-de-loterias-da-caixa-vai-para-o-fies-entenda/", "isOdds": false}, {"key": "brViradaRecord2025", "lang": "pt", "topic": "world", "kind": "record", "native": "A Mega da Virada 2025 pagou o recorde de R$ 1,09 bilhão, dividido entre seis apostas, com cerca de R$ 181,9 milhões para cada uma.", "en": "The 2025 Mega da Virada paid a record R$1.09 billion, split among six winning bets, about R$181.9 million each.", "src": "Mais Goiás", "url": "https://www.maisgoias.com.br/brasil/mega-da-virada-2025-seis-apostas-dividem-premio-recorde-de-r-109-bilhao/", "isOdds": false}, {"key": "brOsascoUnclaimed", "lang": "pt", "topic": "life", "kind": "record", "native": "Um dos participantes de um bolão de Osasco premiado na Mega da Virada 2024 nunca apareceu e perdeu R$ 1,42 milhão quando o prazo acabou em 31 de março de 2025.", "en": "One member of an Osasco syndicate that won the 2024 Mega da Virada never showed up and forfeited R$1.42 million when the deadline passed on March 31, 2025.", "src": "Tribuna de Jundiaí", "url": "https://tribunadejundiai.com.br/mais/brasil/ganhador-da-mega-da-virada-nao-aparece-e-perde-premio-de-r-14-milhao/", "isOdds": false}, {"key": "brSocialTransfers2024", "lang": "pt", "topic": "charity", "kind": "data", "native": "Em 2024, as Loterias Caixa arrecadaram R$ 25,9 bilhões e repassaram R$ 10 bilhões (38,8%) para seguridade social, esporte, cultura, segurança, educação e saúde.", "en": "In 2024 Caixa's lotteries took in R$25.9 billion and passed R$10 billion (38.8%) to social security, sport, culture, public security, education and health.", "src": "BNLData", "url": "https://bnldata.com.br/?p=154850", "isOdds": false}, {"key": "esPrimitivaOdds", "lang": "es", "topic": "odds", "kind": "data", "native": "En La Primitiva, acertar los 6 números de 49 con una apuesta de 1 € tiene una probabilidad de 1 entre 13.983.816.", "en": "In La Primitiva, matching all 6 of 49 numbers with a €1 bet has odds of 1 in 13,983,816.", "src": "SELAE", "url": "https://www.loteriasyapuestas.es/es/centro-de-ayuda/como-se-juega/jugar-a-la-primitiva", "isOdds": true}, {"key": "esTax20Over40k", "lang": "es", "topic": "money", "kind": "rule", "native": "Los premios de SELAE están exentos hasta 40.000 € por décimo o apuesta; lo que supera esa cifra tributa al 20%, retenido en el momento del cobro.", "en": "SELAE prizes are tax-free up to €40,000 per ticket or bet; anything above that is taxed at 20%, withheld when the prize is paid.", "src": "AEDAF", "url": "https://www.aedaf.es/es/documentos/descarga/75326/fiscalidad-premios-loteria-de-navidad-2025", "isOdds": false}, {"key": "esClaimDeadline", "lang": "es", "topic": "life", "kind": "rule", "native": "Los premios de la Lotería de Navidad caducan a los tres meses del sorteo; los grandes se cobran en entidades bancarias autorizadas, no en la administración.", "en": "Christmas Lottery prizes expire three months after the draw; large prizes are cashed at authorised banks rather than at the lottery shop.", "src": "Mallorcadiario", "url": "https://www.mallorcadiario.com/los-premiados-por-la-loteria-de-navidad-deberan-cobrarla-antes-de-3-meses", "isOdds": false}, {"key": "esGordo2025", "lang": "es", "topic": "world", "kind": "data", "native": "El Gordo de Navidad 2025 fue el 79.432: 400.000 € por décimo y 4 millones por serie, dentro de un reparto total de 2.772 millones de euros.", "en": "The 2025 Christmas El Gordo was number 79,432: €400,000 per tenth-ticket and €4 million per series, out of a total €2.772 billion prize pool.", "src": "Público", "url": "https://www.publico.es/sociedad/gordo-loteria-navidad-2025.html", "isOdds": false}, {"key": "esSodetoMitsotakis", "lang": "es", "topic": "life", "kind": "record", "native": "En 2011 El Gordo tocó a casi todo Sodeto (Huesca), unos 250 vecinos; el único que no compró participación fue el cineasta griego Costis Mitsotakis.", "en": "In 2011 El Gordo hit almost all of Sodeto (Huesca), about 250 residents; the only one who hadn't bought a share was Greek filmmaker Costis Mitsotakis.", "src": "ABC News", "url": "https://abcnews.com/blogs/entertainment/2012/04/only-man-left-out-of-towns-lotto-win-plans-documentary", "isOdds": false}, {"key": "esEuromillonesRecord", "lang": "es", "topic": "world", "kind": "record", "native": "El mayor premio de EuroMillones en España, 190 millones de euros, se ganó en octubre de 2023 en Las Palmas de Gran Canaria con un boleto de una sola apuesta de 2,50 €.", "en": "Spain's biggest EuroMillions prize, €190 million, was won in October 2023 in Las Palmas de Gran Canaria with a single-bet €2.50 ticket.", "src": "SELAE", "url": "https://www.loteriasyapuestas.es/es/noticias/premio-record-de-190-millones-de-euromillones-en-las-palmas-de-gran-canaria", "isOdds": false}, {"key": "frLotoOdds", "lang": "fr", "topic": "odds", "kind": "data", "native": "Au LOTO, une grille simple (5 numéros sur 49 et 1 numéro Chance sur 10) a 1 chance sur 19 068 840 de décrocher le jackpot.", "en": "In France's LOTO, a simple grid (5 of 49 numbers plus 1 Chance number of 10) has a 1 in 19,068,840 chance of hitting the jackpot.", "src": "FDJ", "url": "https://www.fdj.fr/mag/questions/article-chances-gagner-jeux-de-loterie", "isOdds": true}, {"key": "frTaxFree", "lang": "fr", "topic": "money", "kind": "rule", "native": "En France, les gains de loterie FDJ ne sont pas soumis à l'impôt sur le revenu et sont versés en totalité, mais les intérêts ou loyers qu'ils rapportent ensuite sont imposables.", "en": "In France, FDJ lottery winnings are not subject to income tax and are paid in full, but the interest or rent they later generate is taxable.", "src": "Justifit", "url": "https://www.justifit.fr/b/guides/droit-fiscal/impots-gagnants-loto/", "isOdds": false}, {"key": "frClaimDeadline", "lang": "fr", "topic": "life", "kind": "rule", "native": "Un gain au LOTO doit être réclamé dans les 60 jours suivant le tirage ; au-delà de 500 000 €, le gagnant est pris en charge par le service Relations Gagnants de la FDJ.", "en": "A LOTO prize must be claimed within 60 days of the draw; winners of €500,000 or more are handled by FDJ's dedicated Winner Relations service.", "src": "FDJ", "url": "https://www.fdj.fr/mag/questions/validite-ticket-loto", "isOdds": false}, {"key": "frEuroMillionsRecord", "lang": "fr", "topic": "world", "kind": "record", "native": "En août 2025, un joueur français a remporté 250 millions d'euros à l'EuroMillions, record national, battant les 220 millions gagnés en 2021 par une joueuse de Tahiti.", "en": "In August 2025 a French player won €250 million at EuroMillions, a national record, beating the €220 million won in 2021 by a player from Tahiti.", "src": "Journal de l'économie", "url": "https://www.journaldeleconomie.fr/?p=41249", "isOdds": false}, {"key": "frUnclaimedToState", "lang": "fr", "topic": "money", "kind": "data", "native": "En 2020, la FDJ a reversé à l'État 70,5 millions d'euros de gains jamais réclamés par les joueurs.", "en": "In 2020, FDJ handed the French state €70.5 million in winnings that players never claimed.", "src": "Journal de l'économie", "url": "https://www.journaldeleconomie.fr/?p=23809", "isOdds": false}, {"key": "frLotoPatrimoine", "lang": "fr", "topic": "charity", "kind": "data", "native": "Depuis 2018, le Loto du patrimoine a apporté 180 millions d'euros sur plus de 325 millions mobilisés pour restaurer plus de 1 000 sites (bilan 2025).", "en": "Since 2018, the Heritage Lottery has supplied €180 million of more than €325 million raised to restore over 1,000 historic sites (as of 2025).", "src": "Gouvernement (info.gouv.fr)", "url": "https://www.info.gouv.fr/index.php/actualite/loto-du-patrimoine-2025-102-sites-soutenus-dans-toute-la-france", "isOdds": false}, {"key": "deJackpotOdds", "lang": "de", "topic": "odds", "kind": "data", "native": "Die Chance auf den Jackpot bei LOTTO 6aus49 – sechs Richtige plus Superzahl – liegt bei 1 zu 139.838.160.", "en": "The chance of hitting the LOTTO 6aus49 jackpot (six numbers plus the Superzahl) is 1 in 139,838,160.", "src": "Weser-Kurier", "url": "https://www.weser-kurier.de/deutschland-welt/hesse-knackt-lotto-rekordjackpot-und-kassiert-45-millionen-doc7kk6nzzz9q015f7ifco3", "isOdds": true}, {"key": "deTaxFree", "lang": "de", "topic": "money", "kind": "rule", "native": "Lottogewinne sind in Deutschland grundsätzlich steuerfrei – Zinsen auf das angelegte Gewinngeld unterliegen aber der Abgeltungsteuer von 25 %.", "en": "Lottery winnings in Germany are generally tax-free, but interest earned on the invested winnings is subject to the 25% flat withholding tax.", "src": "VLH", "url": "https://www.vlh.de/kaufen-investieren/geldanlage/keine-steuern-auf-lottogewinne.html", "isOdds": false}, {"key": "deClaimDeadline", "lang": "de", "topic": "money", "kind": "rule", "native": "Lottogewinne verfallen drei Jahre nach Ende des Jahres der Ziehung; ein Bayern-Millionengewinn von 2019 wurde nie abgeholt und verfiel Ende 2023.", "en": "German lottery prizes expire three years after the end of the draw year; a €1 million Bavarian prize from 2019 was never claimed and lapsed at the end of 2023.", "src": "Abendzeitung München", "url": "https://www.abendzeitung-muenchen.de/muenchen/muenchner-millionen-los-ist-verfallen-wo-steckt-der-lotto-gewinner-art-949538", "isOdds": false}, {"key": "de50MioCap", "lang": "de", "topic": "world", "kind": "record", "native": "Im August 2026 knackte ein Spieler aus Thüringen mit 5,30 € Einsatz den auf 50 Mio. € gedeckelten Jackpot – die längste Durststrecke seit Lotto-Start 1955 war vorbei.", "en": "In August 2026 a Thuringian player staking €5.30 won the jackpot, capped at €50 million, ending the longest dry spell since Lotto began in 1955.", "src": "ZDFheute", "url": "https://www.zdfheute.de/panorama/lotto-jackpot-50-millionen-thueringen-100.html", "isOdds": false}, {"key": "deGemeinwohl", "lang": "de", "topic": "charity", "kind": "data", "native": "2025 flossen aus den Lotterien des Deutschen Lotto- und Totoblocks rund 3,3 Mrd. € in Sport, Kultur, Umwelt und Soziales – etwa 9 Mio. € pro Tag.", "en": "In 2025 the German Lotto and Toto Block lotteries channelled about €3.3 billion to sport, culture, environment and welfare — roughly €9 million a day.", "src": "Public Gaming Research Institute (DLTB)", "url": "https://publicgaming.com/news-categories-m/lottery/15391-german-lottery-sales-top-eur8-2bn-in-2025", "isOdds": false}, {"key": "deUnclaimed11Mio", "lang": "de", "topic": "life", "kind": "record", "native": "Ein Lotto-Gewinn von 11,3 Mio. € aus Reutlingen wurde trotz Aufrufen nie abgeholt; das Geld floss Ende 2020 in einen Topf für Sonderauslosungen.", "en": "An €11.3 million Lotto win from Reutlingen was never claimed despite public appeals; at the end of 2020 the money went into a pot for special prize draws.", "src": "Heidelberg24", "url": "https://www.heidelberg24.de/deutschland/lotto-jackpot-frist-reutlingen-baden-wuerttemberg-millionen-glueck-gewinner-silvester-zr-90156012.html", "isOdds": false}, {"key": "jpLoto6Odds", "lang": "ja", "topic": "odds", "kind": "data", "native": "ロト6の1等当せん確率は約609万分の1(1/6,096,454)。キャリーオーバー時でも1等の最高額は6億円です。", "en": "The odds of winning Loto 6 first prize are 1 in 6,096,454; even with a carryover the top prize is capped at ¥600 million.", "src": "三菱UFJ銀行", "url": "https://www.bk.mufg.jp/tsukau/sonota/takarakuji/loto6/index.html", "isOdds": true}, {"key": "jpMizuhoClaim", "lang": "ja", "topic": "money", "kind": "rule", "native": "100万円を超える当せん金はみずほ銀行の本支店でのみ受け取れ、写真付き身分証が必要で支払いまで約1週間。期限は支払開始日から1年です。", "en": "Prizes over ¥1 million can only be claimed at Mizuho Bank branches with photo ID and take about a week to pay; they expire one year after the payment start date.", "src": "みずほ銀行", "url": "https://www.mizuhobank.co.jp/takarakuji/uketori/index.html", "isOdds": false}, {"key": "jpSonoHiBook", "lang": "ja", "topic": "life", "kind": "rule", "native": "1000万円以上の高額当せん者には冊子『【その日】から読む本』が渡され、誰に話すか、お金の使い方などの心構えが書かれています。", "en": "Winners of ¥10 million or more receive a booklet, \"The Book to Read from That Day,\" advising whom to tell and how to handle the money.", "src": "マネーポストWEB", "url": "https://www.moneypost.jp/1089482/2/", "isOdds": false}, {"key": "jpUnclaimed100Oku", "lang": "ja", "topic": "money", "kind": "data", "native": "宝くじでは毎年約100億円分の当せん金が受け取られず時効に。令和5年度には4億円超の当せん金も含まれ、全額が都道府県などの収入になります。", "en": "About ¥10 billion in Japanese lottery prizes goes unclaimed every year; in FY2023 this included a prize over ¥400 million, and expired money goes to prefectures and cities.", "src": "ファイナンシャルフィールド", "url": "https://financial-field.com/living/entry-362836", "isOdds": false}, {"key": "jpProceeds40", "lang": "ja", "topic": "charity", "kind": "data", "native": "宝くじの売上から当せん金と経費を引いた約4割が、発売元の都道府県や指定都市に収益金として納められ、公共事業などに使われます。", "en": "After prizes and costs, about 40% of Japanese lottery sales go to the issuing prefectures and designated cities as revenue for public projects.", "src": "滋賀県", "url": "https://www.pref.shiga.lg.jp/be00/9116.html", "isOdds": false}, {"key": "jpJumboOdds", "lang": "ja", "topic": "odds", "kind": "data", "native": "年末ジャンボの1等7億円の当せん確率は2000万分の1。前後賞と合わせると10億円になります。", "en": "The Year-End Jumbo's ¥700 million first prize has odds of 1 in 20 million; with the adjacent-number prizes it reaches ¥1 billion.", "src": "ニッセイ基礎研究所", "url": "https://www.nli-research.co.jp/files/topics/80257_ext_18_0.pdf?site=nli", "isOdds": false}, {"key": "krLottoOdds", "lang": "ko", "topic": "odds", "kind": "data", "native": "로또 6/45 1등 당첨 확률은 814만5060분의 1로, 벼락 맞을 확률(약 100만분의 1)보다 8배쯤 낮습니다.", "en": "The odds of winning Lotto 6/45 first prize are 1 in 8,145,060 — about eight times less likely than being struck by lightning (roughly 1 in a million).", "src": "택스워치", "url": "https://www.taxwatch.co.kr/article/tax/2025/09/09/0001", "isOdds": true}, {"key": "krTaxRule", "lang": "ko", "topic": "money", "kind": "rule", "native": "복권 당첨금은 3억 원까지 22%, 3억 원 초과분은 33%가 원천징수됩니다. 당첨금 10억 원이면 세금만 2억9700만 원입니다.", "en": "Korean lottery prizes are withheld at 22% up to ₩300 million and 33% on the excess; a ₩1 billion prize loses ₩297 million to tax.", "src": "택스워치", "url": "https://www.taxwatch.co.kr/article/tax/2025/09/09/0001", "isOdds": false}, {"key": "krClaimRule", "lang": "ko", "topic": "money", "kind": "rule", "native": "로또 1등은 지급개시일부터 1년 안에 NH농협은행 본점에서만 받을 수 있고, 기한을 넘기면 복권기금으로 귀속됩니다.", "en": "Lotto first prizes can be claimed only at NH NongHyup Bank's head office within one year of the payment start date; unclaimed money goes to the national Lottery Fund.", "src": "더팩트", "url": "https://news.tf.co.kr/read/economy/2177031.htm", "isOdds": false}, {"key": "kr407Record", "lang": "ko", "topic": "world", "kind": "record", "native": "역대 최고 로또 1등 당첨금은 2003년 4월 제19회의 407억2295만 원으로, 당첨자는 단 1명이었습니다.", "en": "Korea's biggest Lotto first prize was ₩40.7 billion in draw 19 in April 2003, won by a single person.", "src": "위키트리", "url": "https://www.wikitree.co.kr/articles/965375", "isOdds": false}, {"key": "kr63Winners", "lang": "ko", "topic": "world", "kind": "record", "native": "2024년 7월 제1128회에서 1등이 역대 최다인 63명 나와 1인당 약 4억2천만 원, 세후 약 3억1천만 원에 그쳤습니다.", "en": "Draw 1128 in July 2024 produced a record 63 first-prize winners, each getting about ₩420 million — roughly ₩310 million after tax.", "src": "뉴스1", "url": "https://www.news1.kr/amp/society/general-society/5478423", "isOdds": false}, {"key": "kr103Second", "lang": "ko", "topic": "life", "kind": "record", "native": "2023년 3월 제1057회에서 2등이 664명 나왔고, 그중 103장이 서울 동대문구의 한 판매점에서 팔린 같은 번호였습니다.", "en": "Draw 1057 in March 2023 had 664 second-prize winners, 103 of them identical tickets sold at a single shop in Dongdaemun, Seoul.", "src": "뉴스1", "url": "https://www.news1.kr/amp/society/general-society/4971149", "isOdds": false}, {"key": "cnSsqOdds", "lang": "cn", "topic": "odds", "kind": "data", "native": "双色球一等奖需从33个红球选中6个、16个蓝球选中1个，单注中奖概率约为1/17,721,088。", "en": "Winning the Double Color Ball (Shuangseqiu) jackpot means matching 6 of 33 red balls plus 1 of 16 blue balls: odds of about 1 in 17,721,088 per ticket.", "src": "界面新闻", "url": "https://m.jiemian.com/article/1529767.html", "isOdds": true}, {"key": "cnTax20", "lang": "cn", "topic": "money", "kind": "rule", "native": "彩票奖金按“偶然所得”缴纳20%个税，单次1万元以下免税；2024年起同一期同一游戏所中奖金合并计算（截至2025年）。", "en": "Lottery prizes are taxed at 20% as 'incidental income'; single wins up to ¥10,000 are exempt, and since 2024 all prizes from the same game and draw count as one win (as of 2025).", "src": "第一财经", "url": "https://www.yicai.com/news/102466188.html", "isOdds": false}, {"key": "cnClaim60", "lang": "cn", "topic": "money", "kind": "rule", "native": "福彩中奖者须自开奖之日起60个自然日内兑奖，逾期视为弃奖，奖金纳入彩票公益金（2026年规则）。", "en": "Welfare Lottery winners must claim within 60 calendar days of the draw; unclaimed prizes are forfeited and go into the lottery public-welfare fund (2026 rules).", "src": "新浪体育", "url": "https://sports.sina.cn/2026-08-13/detail-inineqhh4616843.d.html?vt=4", "isOdds": false}, {"key": "cnWelfareFund", "lang": "cn", "topic": "charity", "kind": "data", "native": "2024年全国彩票销量达6234.86亿元；2023年筹集彩票公益金1513.64亿元，约占当年销量的26%。", "en": "China sold ¥623.5 billion of lottery tickets in 2024; in 2023 the lottery raised ¥151.4 billion for public-welfare funds, about 26% of that year's sales.", "src": "中国新闻网", "url": "https://www.chinanews.com/cj/2025/02-10/10366036.shtml", "isOdds": false}, {"key": "cnCostumeWinners", "lang": "cn", "topic": "life", "kind": "record", "native": "中国多位大奖得主穿着大白、米老鼠、熊猫等卡通玩偶服领奖，以防亲友和陌生人上门“分一杯羹”。", "en": "Several Chinese jackpot winners have collected prizes in Baymax, Mickey Mouse or panda costumes to hide their identity from relatives and strangers seeking a share.", "src": "Oddity Central", "url": "https://www.odditycentral.com/news/chinese-lottery-winners-collect-prizes-dressed-as-cartoon-characters-to-protect-their-identity.html", "isOdds": false}, {"key": "cnTaxLoophole", "lang": "cn", "topic": "money", "kind": "record", "native": "2024年初江西一彩民买5万张同号快乐8中奖2.2亿元，因每张奖金4475元未超1万元而无需缴税。", "en": "In early 2024 a Jiangxi player won over ¥220 million with 50,000 identical Kuai Le 8 tickets and paid no tax, as each ticket won only ¥4,475.", "src": "第一财经", "url": "https://www.yicai.com/news/102466188.html", "isOdds": false}, {"key": "vnMegaOdds", "lang": "vi", "topic": "odds", "kind": "data", "native": "Xác suất trúng giải Jackpot Mega 6/45 của Vietlott là 1/8.145.060 cho mỗi bộ số, cao gấp nhiều lần độ khó của xổ số truyền thống.", "en": "The odds of hitting the Vietlott Mega 6/45 jackpot are 1 in 8,145,060 per number set, far longer than traditional lottery odds.", "src": "Tuổi Trẻ", "url": "https://tuoitre.vn/xac-suat-trung-1-8-1-trieu-mot-nguoi-choi-da-rinh-hon-133-ti-dong-cua-vietlott-20251022195948199.htm", "isOdds": true}, {"key": "vnTax10", "lang": "vi", "topic": "money", "kind": "rule", "native": "Tiền trúng xổ số chịu thuế TNCN 10% trên phần vượt ngưỡng; từ 1/7/2026 ngưỡng được nâng từ 10 triệu lên 20 triệu đồng mỗi lần trúng.", "en": "Lottery winnings are taxed 10% on the amount above a threshold; from 1 July 2026 that threshold rose from 10 million to 20 million đồng per win.", "src": "VietnamFinance", "url": "https://vietnamfinance.vn/nang-nguong-chiu-thue-cua-5-khoan-thu-nhap-len-20-trieu-tu-1-7-d146732.html", "isOdds": false}, {"key": "vnClaim60", "lang": "vi", "topic": "money", "kind": "rule", "native": "Người trúng Vietlott có 60 ngày kể từ ngày quay số để lĩnh thưởng; quá hạn, giải thưởng bị hủy và ghi nhận vào doanh thu khác của Vietlott.", "en": "Vietlott winners have 60 days from the draw to claim; after that the prize is void and booked as other revenue for Vietlott.", "src": "VnEconomy", "url": "https://vneconomy.vn/mot-khach-hang-o-ha-noi-vua-trung-gan-304-ty-dong-xo-so.htm", "isOdds": false}, {"key": "vnPowerRecord", "lang": "vi", "topic": "world", "kind": "record", "native": "Giải lớn nhất lịch sử xổ số Việt Nam là Jackpot Power 6/55 gần 304 tỷ đồng (5/2018), xác suất trúng 1/28.989.675, vé bán ở Hà Nội.", "en": "Vietnam's biggest lottery prize ever was a Power 6/55 jackpot of nearly 304 billion đồng in May 2018, odds 1 in 28,989,675, sold in Hanoi.", "src": "VnEconomy", "url": "https://vneconomy.vn/mot-khach-hang-o-ha-noi-vua-trung-gan-304-ty-dong-xo-so.htm", "isOdds": false}, {"key": "vnMega2025", "lang": "vi", "topic": "money", "kind": "record", "native": "Tháng 10/2025, một người trúng Jackpot Mega 6/45 hơn 133,7 tỷ đồng, nộp 13,3 tỷ đồng thuế, thực nhận khoảng 120,4 tỷ đồng.", "en": "In October 2025 one player won a Mega 6/45 jackpot of over 133.7 billion đồng, paid 13.3 billion in tax and took home about 120.4 billion.", "src": "Tuổi Trẻ", "url": "https://tuoitre.vn/xac-suat-trung-1-8-1-trieu-mot-nguoi-choi-da-rinh-hon-133-ti-dong-cua-vietlott-20251022195948199.htm", "isOdds": false}, {"key": "vnKienThietBudget", "lang": "vi", "topic": "charity", "kind": "data", "native": "Năm 2024, riêng Xổ số kiến thiết Sóc Trăng nộp ngân sách 2.162 tỷ đồng, hơn 39% tổng thu ngân sách tỉnh; nguồn thu xổ số ưu tiên cho giáo dục, y tế.", "en": "In 2024 Soc Trang's lottery company alone paid 2,162 billion đồng to the state, over 39% of provincial revenue; lottery revenue is prioritised for education and health.", "src": "Sài Gòn Giải Phóng", "url": "https://www.sggp.org.vn/nam-2024-xskt-soc-trang-nop-ngan-sach-hon-2160-ty-dong-post780929.html", "isOdds": false}, {"key": "thFirstPrizeOdds", "lang": "th", "topic": "odds", "kind": "data", "native": "สลากกินแบ่งรัฐบาลมีเลข 6 หลักตั้งแต่ 000000 ถึง 999999 โอกาสถูกรางวัลที่ 1 (6 ล้านบาท) จึงเป็น 1 ใน 1,000,000 ต่อใบ", "en": "Thai government lottery tickets carry six-digit numbers from 000000 to 999999, so each ticket has a 1-in-1,000,000 chance of the 6-million-baht first prize.", "src": "Tourist Bangkok (2026 guide)", "url": "https://touristbangkok.com/travel-guide/thai-lottery-guide-2026/", "isOdds": true}, {"key": "thDuty05", "lang": "th", "topic": "money", "kind": "rule", "native": "เงินรางวัลสลากกินแบ่งรัฐบาลถูกหักภาษี ณ ที่จ่าย 0.5% เช่น รางวัล 6 ล้านบาทจะถูกหัก 30,000 บาท (ข้อมูลปี 2568)", "en": "Thai government lottery prizes have 0.5% deducted at payout, so a 6-million-baht prize loses 30,000 baht (as of 2025).", "src": "ฐานเศรษฐกิจ", "url": "https://www.thansettakij.com/general-news/632911", "isOdds": false}, {"key": "thClaim2Years", "lang": "th", "topic": "money", "kind": "rule", "native": "ผู้ถูกรางวัลต้องขึ้นเงินภายใน 2 ปีนับจากวันออกรางวัล หากเลยกำหนด เงินรางวัลจะตกเป็นรายได้ของรัฐ", "en": "Winners must claim within two years of the draw date; unclaimed prize money becomes state revenue.", "src": "Wikipedia: Thai lottery", "url": "https://en.wikipedia.org/wiki/Thai_lottery", "isOdds": false}, {"key": "thOverpricing", "lang": "th", "topic": "money", "kind": "record", "native": "สลากมีราคาหน้าตั๋ว 80 บาท แต่ผู้ค้ามักขาย 100–120 บาท จนรัฐต้องเปิดขายสลากดิจิทัลราคา 80 บาทผ่านแอปเป๋าตัง (ข้อมูลปี 2566)", "en": "Tickets have an 80-baht face value, but sellers often charge 100–120 baht, prompting the state to sell 80-baht digital tickets on the Pao Tang app (as of 2023).", "src": "Thai PBS World", "url": "https://old.thaipbsworld.com/?p=305702", "isOdds": false}, {"key": "thN3Digital", "lang": "th", "topic": "world", "kind": "record", "native": "ปลายปี 2567 กองสลากฯ ทดลองสลาก N3 เลข 3 หลัก ใบละ 20 บาท ขายผ่านแอปเป๋าตัง เพื่อแก้ปัญหาสลากเกินราคาและหวยใต้ดิน", "en": "In late 2024 the Government Lottery Office piloted N3, a 20-baht three-digit lottery sold via the Pao Tang app, to tackle overpricing and the underground lottery.", "src": "Bangkok Post", "url": "https://www.bangkokpost.com/thailand/general/2885737/government-launches-lottery-ticket-pilot", "isOdds": false}, {"key": "thPlayersRevenue", "lang": "th", "topic": "life", "kind": "data", "native": "ปี 2564 คนไทย 24.63 ล้านคน (45.4% ของประชากร) ซื้อสลากกินแบ่งรัฐบาล และปี 2565 กองสลากฯ นำส่งรายได้เข้ารัฐ 53,740 ล้านบาท", "en": "In 2021, 24.63 million Thais (45.4% of the population) bought government lottery tickets; in 2022 the lottery office sent 53.74 billion baht to the state.", "src": "Thai PBS World", "url": "https://old.thaipbsworld.com/?p=305702", "isOdds": false}, {"key": "idGamblingBan", "lang": "id", "topic": "world", "kind": "rule", "native": "UU No. 7/1974 menyatakan perjudian bertentangan dengan agama, kesusilaan, dan Pancasila, dan PP 9/1981 melarang pemberian izin untuk segala bentuk perjudian.", "en": "Indonesia's Law No. 7/1974 deems gambling contrary to religion, morality and Pancasila, and Regulation 9/1981 bans licensing any form of gambling.", "src": "MariNews Mahkamah Agung", "url": "https://marinews.mahkamahagung.go.id/artikel/pergeseran-paradigma-penanganan-perjudian-diberantas-atau-d-0Lg", "isOdds": false}, {"key": "idPenalty", "lang": "id", "topic": "life", "kind": "rule", "native": "Penyelenggara judi diancam penjara hingga 10 tahun menurut Pasal 303 KUHP lama, dan hingga 9 tahun menurut Pasal 426 KUHP baru yang berlaku sejak 2 Januari 2026.", "en": "Running gambling carried up to 10 years' jail under old Penal Code Article 303, and up to 9 years under Article 426 of the new Code, in force since 2 January 2026.", "src": "MariNews MA; Bisnis.com", "url": "https://marinews.mahkamahagung.go.id/artikel/pergeseran-paradigma-penanganan-perjudian-diberantas-atau-d-0Lg", "isOdds": false}, {"key": "idPorkas", "lang": "id", "topic": "world", "kind": "record", "native": "Tahun 1985 pemerintah meluncurkan Porkas, undian tebak hasil sepak bola; setelah ditentang kalangan Muslim, namanya diganti menjadi KSOB pada 1987.", "en": "In 1985 the government launched Porkas, a football-results lottery; after Muslim opposition it was renamed KSOB in 1987 rather than shut down.", "src": "NU Online", "url": "https://nu.or.id/syariah/beberapa-kasus-legalisasi-judi-oleh-pemerintah-di-indonesia-stXNh", "isOdds": false}, {"key": "idSdsbProtests", "lang": "id", "topic": "world", "kind": "record", "native": "Undian SDSB era Orde Baru memicu demo mahasiswa di Jakarta, Yogyakarta, Surabaya, Makassar, dan kota lain, hingga dihentikan menyusul protes besar 1993.", "en": "The New Order-era SDSB lottery sparked student protests in Jakarta, Yogyakarta, Surabaya, Makassar and other cities, and was ended after mass protests in 1993.", "src": "GoodNews from Indonesia", "url": "https://www.goodnewsfromindonesia.id/2024/02/19/ketika-rhoma-irama-siap-mati-untuk-melawan-lotre-porkas-zaman-orba", "isOdds": false}, {"key": "idOnlineGambling", "lang": "id", "topic": "money", "kind": "data", "native": "PPATK mencatat perputaran uang judi online, yang tetap marak meski dilarang, mencapai Rp327,05 triliun pada 2023 dan Rp283 triliun hingga November 2024.", "en": "Indonesia's financial intelligence unit PPATK recorded illegal online gambling turnover of Rp327.05 trillion in 2023 and Rp283 trillion by November 2024.", "src": "Antara", "url": "https://bengkulu.antaranews.com/berita/377477/perputaran-dana-judi-online-di-indonesia-capai-rp283-triliun-pada-2024-ungkap-ppatk", "isOdds": false}];
+const LT_OWNER = {}, LT_ODDS = {};
+/* HK-only cards: hide them for players of other formats */
+const HK_ONLY = ['tHotCold', 'tAllCombo', 'tHKclaim', 'tHk46', 'tBday'];
+LOCAL_TRUTHS.forEach(f => {
+  const k = 'lt_' + f.key;
+  LT_OWNER[k] = f.lang;
+  T.en[k] = f.lang === 'en' ? f.native : f.en;
+  T.zh[k] = f.native;
+  (TGC[f.lang] || (TGC[f.lang] = {}))[k] = f.native;
+  TRUTH_SRC[k] = 'lt_' + f.key; SRC['lt_' + f.key] = [f.src, f.url];
+  TOPIC[k] = f.topic;
+  if (f.kind === 'rule') RULE_TAG.push(k); else if (f.kind === 'data') DATA_TAG.push(k);
+  if (f.topic === 'odds' && f.isOdds && !LT_ODDS[f.lang]) LT_ODDS[f.lang] = k;
+  ALL_TRUTHS.push(k);
+});
+const truthOK = k => {
+  if (LT_OWNER[k]) return LT_OWNER[k] === L;
+  if (L !== 'zh' && HK_ONLY.includes(k) && Object.values(LT_OWNER).includes(L)) return false;
+  return true;
+};
+const localPool = () => ALL_TRUTHS.filter(x => LT_OWNER[x] === L && !(S.runSeen || []).includes(x));
+const LT_FIRST = kind => { const o = {}; LOCAL_TRUTHS.forEach(f => { if (f.kind === kind && !o[f.lang]) o[f.lang] = 'lt_' + f.key; }); return o; };
+const LT_RULE = LT_FIRST('rule'), LT_REC = LT_FIRST('record');
+function locSwap(k){
+  if (L === 'zh' || !k) return k;
+  try { const m = { tOdds: L === 'en' ? 'tPBodds' : LT_ODDS[L], tClaim: LT_RULE[L], tHKclaim: LT_RULE[L], tBday: LT_REC[L] }; return m[k] || k; } catch (e) { return k; }
+}
+
 /* pick a card the player hasn't seen this run; prefer the same topic */
 function pickTruth(k){
   if (!k) return null;
   S.runSeen = S.runSeen || [];
-  let pick = k;
-  if (S.runSeen.includes(k)) {
+  k = locSwap(k); let pick = k;
+  if (S.runSeen.includes(k) || !truthOK(k)) {
     const topic = TOPIC[k];
-    const fresh = ALL_TRUTHS.filter(x => !S.runSeen.includes(x) && T.zh[x]);
+    const fresh = ALL_TRUTHS.filter(x => !S.runSeen.includes(x) && T.zh[x] && truthOK(x));
     const same = fresh.filter(x => TOPIC[x] === topic);
     const pool = same.length ? same : fresh;
     if (pool.length) pick = pool[rand(pool.length)];
@@ -6425,8 +6509,9 @@ function pickTruth(k){
 }
 function randomTrivia(){
   S.runSeen = S.runSeen || [];
-  const fresh = ALL_TRUTHS.filter(x => !S.runSeen.includes(x) && T.zh[x] && !SEEN.includes(x));
-  const pool = fresh.length ? fresh : ALL_TRUTHS.filter(x => !S.runSeen.includes(x) && T.zh[x]);
+  const lp = localPool().filter(x => !SEEN.includes(x));
+  const fresh = lp.length && Math.random() < .6 ? lp : ALL_TRUTHS.filter(x => !S.runSeen.includes(x) && T.zh[x] && truthOK(x) && !SEEN.includes(x));
+  const pool = fresh.length ? fresh : ALL_TRUTHS.filter(x => !S.runSeen.includes(x) && T.zh[x] && truthOK(x));
   if (!pool.length) return null;
   const k = pool[rand(pool.length)]; S.runSeen.push(k); return k;
 }
